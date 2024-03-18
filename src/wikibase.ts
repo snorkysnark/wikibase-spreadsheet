@@ -105,4 +105,39 @@ async function checkLogin(action: CheckLoginParams): Promise<boolean> {
   }
 }
 
-export { checkLogin };
+type EntityType = "form" | "item" | "lexeme" | "property" | "sense";
+
+interface SearchEntitiesParams {
+  search: string;
+  language?: string;
+  type?: EntityType;
+  limit?: string;
+  continue?: string;
+  props?: string;
+}
+
+async function searchEntities(params: SearchEntitiesParams): Promise<any> {
+  return fetch(
+    `${API_URL}?${new URLSearchParams({
+      ...params,
+      action: "wbsearchentities",
+      language: params.language || "en",
+      format: "json",
+    })}`,
+    {
+      credentials: "include",
+    }
+  ).then((response) => {
+    if (response.ok) {
+      return response.json();
+    }
+    throw new ResponseError("Bad response", response);
+  });
+}
+
+export {
+  checkLogin,
+  searchEntities,
+  type SearchEntitiesParams,
+  type EntityType,
+};

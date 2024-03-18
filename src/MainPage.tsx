@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { LoginContext } from "./Login";
 import { HotTable } from "@handsontable/react";
+import StructurePanel from "./structurepanel/StructurePanel";
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
@@ -26,7 +27,9 @@ export default function MainPage() {
             licenseKey="non-commercial-and-evaluation"
           />
         </div>
-        <div className="flex-shrink-0 w-[30%] h-full bg-gray-200"></div>
+        <div className="flex-shrink-0 w-[30%] h-full bg-gray-200">
+          <StructurePanel />
+        </div>
       </div>
     </div>
   );
