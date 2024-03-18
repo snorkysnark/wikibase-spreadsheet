@@ -76,7 +76,7 @@ async function checkLogin(action: CheckLoginParams): Promise<boolean> {
           loginreturnurl: LOGIN_RETURN_URL,
           username: action.username,
           password: action.password,
-          ...(action.rememberMe && { rememberMe: "true" }),
+          ...(action.rememberMe && { rememberMe: "1" }),
           format: "json",
         }),
         credentials: "include",
