@@ -27,7 +27,7 @@ export default function MainPage() {
             licenseKey="non-commercial-and-evaluation"
           />
         </div>
-        <div className="flex-shrink-0 w-[30%] h-full bg-gray-200">
+        <div className="flex-shrink-0 w-[30%] h-full bg-gray-200 pr-2 pl-2">
           <StructurePanel />
         </div>
       </div>

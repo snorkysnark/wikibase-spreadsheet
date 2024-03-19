@@ -1,22 +1,27 @@
 import Autocomplete from "@mui/material/Autocomplete";
-import TextField from "@mui/material/TextField";
 import Grid from "@mui/material/Grid";
 import { debounce } from "@mui/material/utils";
-import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { Ref, forwardRef, useEffect, useMemo, useState } from "react";
 
 import { searchEntities, SearchEntitiesParams, EntityType } from "src/wikibase";
-import { Popper, SxProps } from "@mui/material";
+import { Popper, SxProps, TextField } from "@mui/material";
 
 interface ItemValue {
   id: string;
   [other: string]: any;
 }
 
-export default function ItemSearch(props: {
-  type: EntityType;
-  sx?: SxProps;
-  popperStyle?: CSSProperties;
-}) {
+function ItemSearch(
+  props: {
+    type: EntityType;
+    value: ItemValue | null;
+    onChange: (value: ItemValue | null) => void;
+    label?: string;
+    sx?: SxProps;
+    popperWidth?: () => number;
+  },
+  ref?: Ref<unknown>
+) {
   const [inputValue, setInputValue] = useState("");
   const [options, setOptions] = useState<any[]>([]);
 
@@ -48,24 +53,30 @@ export default function ItemSearch(props: {
   }, [inputValue, fetchOptions]);
 
   return (
-    <Autocomplete
+    <Autocomplete<ItemValue, false, boolean>
       sx={props.sx}
+      ref={ref}
       disableClearable
-      onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
+      onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
       options={options}
       getOptionLabel={(option) => option.id}
       isOptionEqualToValue={(option, value) => value && option.id === value.id}
       filterOptions={(x) => x}
-      PopperComponent={(popperProps) => (
-        <Popper
-          {...popperProps}
-          placement="bottom-start"
-          style={props.popperStyle}
-        />
-      )}
-      renderInput={(params) => (
-        <TextField {...params} label="ID" variant="outlined" size="small" />
-      )}
+      PopperComponent={(popperProps) => {
+        const popperStyle = { ...popperProps.style };
+        if (props.popperWidth) {
+          popperStyle.width = props.popperWidth();
+        }
+
+        return (
+          <Popper
+            {...popperProps}
+            placement="bottom-start"
+            style={popperStyle}
+          />
+        );
+      }}
+      renderInput={(params) => <TextField {...params} label={props.label} />}
       renderOption={(props, option) => (
         <li {...props}>
           <Grid container>
@@ -78,7 +89,10 @@ export default function ItemSearch(props: {
           </Grid>
         </li>
       )}
-      onChange={(event, value) => console.log()}
+      value={props.value}
+      onChange={(_, value) => props.onChange(value)}
     />
   );
 }
+
+export default forwardRef(ItemSearch);
