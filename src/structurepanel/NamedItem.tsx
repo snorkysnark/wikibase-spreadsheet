@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import ItemSearch from "./ItemSearch";
 import { TextField } from "@mui/material";
+import { EntityType } from "src/wikibase";
 
 export interface NamedItemValue {
   id: string | null;
@@ -10,9 +11,13 @@ export interface NamedItemValue {
 export default function NamedItem({
   value: { id, name },
   onChange,
+  type = "item",
+  label = "Item ID",
 }: {
   value: NamedItemValue;
   onChange: (value: NamedItemValue) => void;
+  type?: EntityType;
+  label?: string;
 }) {
   const itemInput = useRef<HTMLDivElement>(null);
   const nameInput = useRef<HTMLDivElement>(null);
@@ -21,8 +26,8 @@ export default function NamedItem({
     <div className="flex mt-2">
       <ItemSearch
         ref={itemInput}
-        type="item"
-        label="Item ID"
+        type={type}
+        label={label}
         value={id ? { id } : null}
         onChange={(item) =>
           onChange({ id: item && item.id, name: item?.label || name })

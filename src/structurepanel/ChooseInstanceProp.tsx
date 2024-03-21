@@ -1,4 +1,5 @@
 import ItemSearch from "./ItemSearch";
+import DragHandle from "@mui/icons-material/DragHandle";
 
 export default function ChooseInstanceProp(props: {
   value: string | null;
