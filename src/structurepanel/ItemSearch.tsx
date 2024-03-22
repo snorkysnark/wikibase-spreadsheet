@@ -12,8 +12,8 @@ interface ItemValue {
 
 export default function ItemSearch(props: {
   type: EntityType;
-  value: ItemValue | string | null;
-  onChange: (value: ItemValue | null) => void;
+  value?: ItemValue | string | null;
+  onChange?: (value: ItemValue | null) => void;
   label?: string;
   sx?: SxProps;
   popperWidth?: () => number;
@@ -83,7 +83,7 @@ export default function ItemSearch(props: {
       value={
         typeof props.value === "string" ? { id: props.value } : props.value
       }
-      onChange={(_, value) => props.onChange(value)}
+      onChange={(_, value) => props.onChange?.(value)}
     />
   );
 }
