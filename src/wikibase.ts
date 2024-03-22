@@ -88,6 +88,7 @@ async function checkLogin(action: CheckLoginParams): Promise<boolean> {
           throw new ResponseError("Bad response", response);
         })
         .then((json) => {
+          console.log(json);
           return json.clientlogin.status === "PASS";
         });
     case "logout":

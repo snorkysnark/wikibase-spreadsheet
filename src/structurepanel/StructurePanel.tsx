@@ -3,8 +3,9 @@ import ChooseInstanceProp from "./ChooseInstanceProp";
 import NamedItem, { NamedItemValue } from "./NamedItem";
 import { useMemo, useState } from "react";
 import { TableField } from "src/structure";
-import { Button, IconButton } from "@mui/material";
+import { Button, IconButton, Typography } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import ItemSearch from "./ItemSearch";
 
 export default function StructurePanel() {
   const [instanceProp, setInstanceProp] = useState<string | null>(null);
@@ -35,11 +36,19 @@ export default function StructurePanel() {
   }
 
   return (
-    <div>
-      <ChooseInstanceProp
-        value={instanceProp || null}
-        onChange={setInstanceProp}
-      />
+    <>
+      <div css={{ display: "flex", paddingTop: "1em" }}>
+        <Typography variant="h5">Is instance(</Typography>
+        <ItemSearch
+          type="property"
+          label="Property ID"
+          value={instanceProp ? { id: instanceProp } : null}
+          onChange={(value) => setInstanceProp(value && value.id)}
+          sx={{ flex: "1" }}
+        />
+        <Typography variant="h5">) of</Typography>
+      </div>
+
       <NamedItem value={parentInfo} onChange={setParentInfo} />
       <hr className="bg-gray-400 h-px border-0 my-2" />
       <ul>
@@ -90,6 +99,6 @@ export default function StructurePanel() {
       >
         Add
       </Button>
-    </div>
+    </>
   );
 }

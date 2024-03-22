@@ -1,5 +1,6 @@
 import { useContext } from "react";
 import { LoginContext } from "./Login";
+import { AppBar, Button, MenuItem, Select, Toolbar } from "@mui/material";
 import { HotTable } from "@handsontable/react";
 import StructurePanel from "./structurepanel/StructurePanel";
 
@@ -7,19 +8,32 @@ export default function MainPage() {
   const { logout } = useContext(LoginContext);
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="w-full h-8 bg-gray-300 flex">
-        <select name="types" className="bg-gray-300">
-          <option value="new-table">New Table</option>
-        </select>
-        {/* Separator */} <div className="flex-1" />
-        <button className="bg-red-400 pl-2 pr-2" onClick={logout}>
-          Logout
-        </button>
-      </div>
-
-      <div className="flex w-full h-full">
-        <div className="flex-1">
+    <div
+      css={{
+        display: "flex",
+        height: "100vh",
+        flexDirection: "column",
+      }}
+    >
+      <AppBar
+        position="static"
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          background: "lightblue",
+        }}
+      >
+        <Toolbar variant="dense">
+          <Select variant="standard" defaultValue="new-table">
+            <MenuItem value="new-table">New Table</MenuItem>
+          </Select>
+          <div css={{ flex: "1" }} />
+          <Button variant="contained" onClick={logout}>
+            Logout
+          </Button>
+        </Toolbar>
+      </AppBar>
+      <div css={{ width: "100%", height: "100%", display: "flex" }}>
+        <div css={{ flex: "1" }}>
           <HotTable
             colHeaders={true}
             manualColumnMove={true}
@@ -27,7 +41,12 @@ export default function MainPage() {
             licenseKey="non-commercial-and-evaluation"
           />
         </div>
-        <div className="flex-shrink-0 w-[30%] h-full bg-gray-200 pr-2 pl-2">
+        <div
+          css={{
+            width: "30%",
+            borderLeft: "1px solid rgba(0, 0, 0, 0.12)",
+          }}
+        >
           <StructurePanel />
         </div>
       </div>
