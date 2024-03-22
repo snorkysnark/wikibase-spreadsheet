@@ -1,27 +1,23 @@
 import Autocomplete from "@mui/material/Autocomplete";
-import Grid from "@mui/material/Grid";
 import { debounce } from "@mui/material/utils";
-import { Ref, forwardRef, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { searchEntities, SearchEntitiesParams, EntityType } from "src/wikibase";
-import { Popper, SxProps, TextField } from "@mui/material";
+import { Popper, SxProps, TextField, Typography } from "@mui/material";
 
 interface ItemValue {
   id: string;
-  [other: string]: any;
+  label?: string;
 }
 
-function ItemSearch(
-  props: {
-    type: EntityType;
-    value: ItemValue | null;
-    onChange: (value: ItemValue | null) => void;
-    label?: string;
-    sx?: SxProps;
-    popperWidth?: () => number;
-  },
-  ref?: Ref<unknown>
-) {
+export default function ItemSearch(props: {
+  type: EntityType;
+  value: ItemValue | string | null;
+  onChange: (value: ItemValue | null) => void;
+  label?: string;
+  sx?: SxProps;
+  popperWidth?: () => number;
+}) {
   const [inputValue, setInputValue] = useState("");
   const [options, setOptions] = useState<any[]>([]);
 
@@ -55,7 +51,6 @@ function ItemSearch(
   return (
     <Autocomplete<ItemValue, false, boolean>
       sx={props.sx}
-      ref={ref}
       disableClearable
       onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
       options={options}
@@ -79,20 +74,16 @@ function ItemSearch(
       renderInput={(params) => <TextField {...params} label={props.label} />}
       renderOption={(props, option) => (
         <li {...props}>
-          <Grid container>
-            <Grid item xs={1} sx={{ fontWeight: "bold" }}>
-              {option.id}
-            </Grid>
-            <Grid item xs>
-              {option.label}
-            </Grid>
-          </Grid>
+          <Typography sx={{ fontWeight: "bold", marginRight: "1em" }}>
+            {option.id}
+          </Typography>
+          {option.label && <Typography>{option.label}</Typography>}
         </li>
       )}
-      value={props.value}
+      value={
+        typeof props.value === "string" ? { id: props.value } : props.value
+      }
       onChange={(_, value) => props.onChange(value)}
     />
   );
 }
-
-export default forwardRef(ItemSearch);
