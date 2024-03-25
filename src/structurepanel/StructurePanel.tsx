@@ -19,6 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import SortableList from "./SortableList";
 
 interface NamedItemValue {
   item: string | null;
@@ -73,17 +74,15 @@ function DeleteButton(props: Parameters<typeof IconButton>[0]) {
 
 function EditTableField({
   field,
-  index,
   onUpdate,
   onRemove,
 }: {
   field: TableField<string | null>;
-  index: number;
   onUpdate: (field: TableField<string | null>) => void;
   onRemove: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: field.uuid, data: { index } });
+    useSortable({ id: field.uuid });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -148,33 +147,16 @@ export default function StructurePanel() {
       </div>
       <NamedItem type="item" value={parentInfo} onChange={setParentInfo} />
       <Divider sx={{ marginY: "0.5em" }} />
-      <DndContext
-        collisionDetection={closestCorners}
-        modifiers={[restrictToVerticalAxis]}
-        onDragEnd={(event) => {
-          if (event.active.data.current && event.over?.data.current) {
-            swapFields(
-              event.active.data.current.sortable.index,
-              event.over.data.current.sortable.index
-            );
-          }
-        }}
-      >
-        <SortableContext
-          items={fields.map((field) => field.uuid)}
-          strategy={verticalListSortingStrategy}
-        >
-          {fields.map((field, i) => (
-            <EditTableField
-              key={field.uuid}
-              field={field}
-              index={i}
-              onUpdate={(value) => fieldsControl.updateAt(i, value)}
-              onRemove={() => fieldsControl.removeAt(i)}
-            />
-          ))}
-        </SortableContext>
-      </DndContext>
+      <SortableList ids={fields.map((field) => field.uuid)} onSwap={swapFields}>
+        {fields.map((field, i) => (
+          <EditTableField
+            key={field.uuid}
+            field={field}
+            onUpdate={(value) => fieldsControl.updateAt(i, value)}
+            onRemove={() => fieldsControl.removeAt(i)}
+          />
+        ))}
+      </SortableList>
       <Button
         onClick={() => {
           fieldsControl.push({
