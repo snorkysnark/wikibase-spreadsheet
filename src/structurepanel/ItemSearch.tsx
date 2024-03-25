@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { searchEntities, SearchEntitiesParams, EntityType } from "src/wikibase";
 import { Popper, SxProps, TextField, Typography } from "@mui/material";
 
-interface ItemValue {
+export interface ItemValue {
   id: string;
   label?: string;
 }
@@ -14,9 +14,8 @@ export default function ItemSearch(props: {
   type: EntityType;
   value?: ItemValue | string | null;
   onChange?: (value: ItemValue | null) => void;
-  label?: string;
   sx?: SxProps;
-  popperWidth?: () => number;
+  popperWidth?: (width: number) => number;
 }) {
   const [inputValue, setInputValue] = useState("");
   const [options, setOptions] = useState<any[]>([]);
@@ -59,8 +58,8 @@ export default function ItemSearch(props: {
       filterOptions={(x) => x}
       PopperComponent={(popperProps) => {
         const popperStyle = { ...popperProps.style };
-        if (props.popperWidth) {
-          popperStyle.width = props.popperWidth();
+        if (props.popperWidth && popperStyle.width) {
+          popperStyle.width = props.popperWidth(+popperStyle.width);
         }
 
         return (
@@ -71,7 +70,12 @@ export default function ItemSearch(props: {
           />
         );
       }}
-      renderInput={(params) => <TextField {...params} label={props.label} />}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label={props.type[0].toUpperCase() + props.type.slice(1) + " ID"}
+        />
+      )}
       renderOption={(props, option) => (
         <li {...props}>
           <Typography sx={{ fontWeight: "bold", marginRight: "1em" }}>

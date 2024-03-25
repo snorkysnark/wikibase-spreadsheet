@@ -10,7 +10,7 @@ export interface TableStructure<WikidataID> {
 }
 
 export interface TableField<WikidataID> {
-  id: number;
+  uuid: string;
   property: WikidataID;
   name: string;
 }
