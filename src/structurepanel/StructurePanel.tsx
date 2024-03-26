@@ -104,7 +104,7 @@ function EditTableField({
       />
       <NamedItem
         type="property"
-        specialOptions={["label"]}
+        specialOptions={["label", "description"]}
         value={{ item: field.property, name: field.name }}
         onChange={({ item, name }) =>
           onUpdate({

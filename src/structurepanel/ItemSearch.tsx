@@ -1,4 +1,4 @@
-import Autocomplete from "@mui/material/Autocomplete";
+import Autocomplete, { createFilterOptions } from "@mui/material/Autocomplete";
 import { debounce } from "@mui/material/utils";
 import { useEffect, useMemo, useState } from "react";
 
@@ -8,6 +8,7 @@ import { Popper, SxProps, TextField, Typography } from "@mui/material";
 export interface ItemValue {
   id: string;
   label?: string;
+  special?: boolean;
 }
 
 export default function ItemSearch(props: {
@@ -18,7 +19,11 @@ export default function ItemSearch(props: {
   sx?: SxProps;
   popperWidth?: (width: number) => number;
 }) {
-  const specialOptions = props.specialOptions ?? [];
+  const specialOptions: ItemValue[] = useMemo(
+    () =>
+      props.specialOptions?.map((name) => ({ id: name, special: true })) ?? [],
+    [props.specialOptions]
+  );
 
   const [inputValue, setInputValue] = useState("");
   const [options, setOptions] = useState<any[]>([]);
@@ -50,16 +55,21 @@ export default function ItemSearch(props: {
     };
   }, [inputValue, fetchOptions]);
 
+  const filterOptions = createFilterOptions<ItemValue>();
+
   return (
     <Autocomplete<ItemValue, false, boolean>
       sx={props.sx}
       onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
-      options={[...specialOptions.map((name) => ({ id: name })), ...options]}
+      options={[...specialOptions, ...options]}
       getOptionLabel={(option) => {
         return option.id;
       }}
       isOptionEqualToValue={(option, value) => value && option.id === value.id}
-      filterOptions={(x) => x}
+      filterOptions={(_, state) => [
+        ...filterOptions(specialOptions, state),
+        ...options,
+      ]}
       PopperComponent={(popperProps) => {
         const popperStyle = { ...popperProps.style };
         if (props.popperWidth && popperStyle.width) {
