@@ -101,9 +101,9 @@ export default function MainPage() {
                 // New table
                 const newUuid = crypto.randomUUID();
                 setTableStructure(
-                  produce((settings) =>
-                    settings.tables.push({ uuid: newUuid, ...value })
-                  )
+                  produce((settings) => {
+                    settings.tables.push({ uuid: newUuid, ...value });
+                  })
                 );
                 setCurrentTableUuid(newUuid);
               }
@@ -113,7 +113,7 @@ export default function MainPage() {
                 setCurrentTableUuid(null);
                 setTableStructure(
                   produce((settings) => {
-                    settings.tables.filter(
+                    settings.tables = settings.tables.filter(
                       (table) => table.uuid !== currentTableUuid
                     );
                   })

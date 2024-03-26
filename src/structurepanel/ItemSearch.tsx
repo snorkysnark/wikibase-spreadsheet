@@ -12,11 +12,14 @@ export interface ItemValue {
 
 export default function ItemSearch(props: {
   type: EntityType;
+  specialOptions?: string[];
   value?: ItemValue | string | null;
   onChange?: (value: ItemValue | null) => void;
   sx?: SxProps;
   popperWidth?: (width: number) => number;
 }) {
+  const specialOptions = props.specialOptions ?? [];
+
   const [inputValue, setInputValue] = useState("");
   const [options, setOptions] = useState<any[]>([]);
 
@@ -50,10 +53,11 @@ export default function ItemSearch(props: {
   return (
     <Autocomplete<ItemValue, false, boolean>
       sx={props.sx}
-      disableClearable
       onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
-      options={options}
-      getOptionLabel={(option) => option.id}
+      options={[...specialOptions.map((name) => ({ id: name })), ...options]}
+      getOptionLabel={(option) => {
+        return option.id;
+      }}
       isOptionEqualToValue={(option, value) => value && option.id === value.id}
       filterOptions={(x) => x}
       PopperComponent={(popperProps) => {
@@ -78,7 +82,12 @@ export default function ItemSearch(props: {
       )}
       renderOption={(props, option) => (
         <li {...props}>
-          <Typography sx={{ fontWeight: "bold", marginRight: "1em" }}>
+          <Typography
+            sx={{
+              fontWeight: "bold",
+              marginRight: "1em",
+            }}
+          >
             {option.id}
           </Typography>
           {option.label && <Typography>{option.label}</Typography>}
@@ -87,7 +96,9 @@ export default function ItemSearch(props: {
       value={
         typeof props.value === "string" ? { id: props.value } : props.value
       }
-      onChange={(_, value) => props.onChange?.(value)}
+      onChange={(_, value) => {
+        props.onChange?.(value);
+      }}
     />
   );
 }

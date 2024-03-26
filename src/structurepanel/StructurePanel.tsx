@@ -29,13 +29,16 @@ function NamedItem(props: {
   type: EntityType;
   value: NamedItemValue;
   onChange: (value: NamedItemValue) => void;
+  specialOptions?: string[];
 }) {
   const textFieldRef = useRef<HTMLDivElement>(null);
 
   return (
     <div css={{ display: "flex", paddingTop: "0.5em", flex: "1" }}>
       <ItemSearch
+        sx={{ width: "10em" }}
         type={props.type}
+        specialOptions={props.specialOptions}
         popperWidth={(width) =>
           width + (textFieldRef.current?.clientWidth || 0)
         }
@@ -43,7 +46,7 @@ function NamedItem(props: {
         onChange={(item) =>
           props.onChange({
             item: item && item.id,
-            name: item?.label ?? props.value.name,
+            name: item?.label ?? item?.id ?? props.value.name,
           })
         }
       />
@@ -101,6 +104,7 @@ function EditTableField({
       />
       <NamedItem
         type="property"
+        specialOptions={["label"]}
         value={{ item: field.property, name: field.name }}
         onChange={({ item, name }) =>
           onUpdate({
