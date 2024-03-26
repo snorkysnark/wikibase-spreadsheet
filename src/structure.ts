@@ -1,12 +1,17 @@
 export interface StructureSettings {
-  isInstanceProperty: string;
-  tables: { [name: string]: TableStructure<string> };
+  isInstanceProperty: string | null;
+  tables: TableStructure<string>[];
 }
 
-export interface TableStructure<WikidataID> {
+export interface TableStructurePartial<WikidataID> {
   name: string;
   parentItem: WikidataID;
   fields: TableField<WikidataID>[];
+}
+
+export interface TableStructure<WikidataID>
+  extends TableStructurePartial<WikidataID> {
+  uuid: string;
 }
 
 export interface TableField<WikidataID> {

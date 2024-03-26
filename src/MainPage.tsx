@@ -1,11 +1,21 @@
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { LoginContext } from "./Login";
 import { AppBar, Button, MenuItem, Select, Toolbar } from "@mui/material";
 import { HotTable } from "@handsontable/react";
 import StructurePanel from "./structurepanel/StructurePanel";
+import { StructureSettings } from "./structure";
+import { useLocalStorage } from "src/hooks";
+import { produce } from "immer";
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
+  const [tableStructure, setTableStructure] =
+    useLocalStorage<StructureSettings>("table-structure", {
+      isInstanceProperty: null,
+      tables: [],
+    });
+
+  const [currentTableUuid, setCurrentTableUuid] = useState<string | null>(null);
 
   return (
     <div
@@ -23,8 +33,21 @@ export default function MainPage() {
         }}
       >
         <Toolbar variant="dense">
-          <Select variant="standard" defaultValue="new-table">
+          <Select
+            variant="standard"
+            value={currentTableUuid ?? "new-table"}
+            onChange={(event) =>
+              setCurrentTableUuid(
+                event.target.value === "new-table" ? null : event.target.value
+              )
+            }
+          >
             <MenuItem value="new-table">New Table</MenuItem>
+            {tableStructure.tables.map((table) => (
+              <MenuItem key={table.uuid} value={table.uuid}>
+                {table.name}
+              </MenuItem>
+            ))}
           </Select>
           <div css={{ flex: "1" }} />
           <Button variant="contained" onClick={logout}>
@@ -36,8 +59,6 @@ export default function MainPage() {
         <div css={{ flex: "1" }}>
           <HotTable
             colHeaders={true}
-            manualColumnMove={true}
-            dropdownMenu={true}
             licenseKey="non-commercial-and-evaluation"
           />
         </div>
@@ -47,7 +68,59 @@ export default function MainPage() {
             borderLeft: "1px solid rgba(0, 0, 0, 0.12)",
           }}
         >
-          <StructurePanel />
+          <StructurePanel
+            isInstanceProperty={tableStructure.isInstanceProperty}
+            onChangeInstanceProperty={(isInstanceProperty) =>
+              setTableStructure(
+                produce((tableStructure) => {
+                  tableStructure.isInstanceProperty = isInstanceProperty;
+                })
+              )
+            }
+            existing={!!currentTableUuid}
+            tableStructure={
+              (currentTableUuid &&
+                tableStructure.tables.find(
+                  (table) => table.uuid === currentTableUuid
+                )) ||
+              null
+            }
+            onChangeStucture={(value) => {
+              if (currentTableUuid) {
+                // Existing table
+                setTableStructure(
+                  produce((settings) => {
+                    settings.tables = settings.tables.map((table) =>
+                      table.uuid === currentTableUuid
+                        ? { uuid: currentTableUuid, ...value }
+                        : table
+                    );
+                  })
+                );
+              } else {
+                // New table
+                const newUuid = crypto.randomUUID();
+                setTableStructure(
+                  produce((settings) =>
+                    settings.tables.push({ uuid: newUuid, ...value })
+                  )
+                );
+                setCurrentTableUuid(newUuid);
+              }
+            }}
+            onDelete={() => {
+              if (currentTableUuid) {
+                setCurrentTableUuid(null);
+                setTableStructure(
+                  produce((settings) => {
+                    settings.tables.filter(
+                      (table) => table.uuid !== currentTableUuid
+                    );
+                  })
+                );
+              }
+            }}
+          />
         </div>
       </div>
     </div>

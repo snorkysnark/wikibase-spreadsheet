@@ -1,6 +1,7 @@
-import { useCallback, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
+  ButtonGroup,
   Divider,
   IconButton,
   TextField,
@@ -9,17 +10,15 @@ import {
 import { Delete as DeleteIcon, DragIndicator } from "@mui/icons-material";
 import ItemSearch from "./ItemSearch";
 import { EntityType } from "src/wikibase";
-import { useList } from "react-use";
-import { TableField } from "src/structure";
-import { DndContext, closestCorners } from "@dnd-kit/core";
 import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+  TableField,
+  TableStructure,
+  TableStructurePartial,
+} from "src/structure";
+import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import SortableList from "./SortableList";
+import { useList } from "src/hooks";
 
 interface NamedItemValue {
   item: string | null;
@@ -116,58 +115,117 @@ function EditTableField({
   );
 }
 
-export default function StructurePanel() {
-  const [instanceProp, setInstanceProp] = useState<string | null>(null);
+export default function StructurePanel(props: {
+  isInstanceProperty: string | null;
+  onChangeInstanceProperty: (value: string | null) => void;
+  existing?: boolean;
+  tableStructure: TableStructure<string> | null;
+  onChangeStucture: (tableStructure: TableStructurePartial<string>) => void;
+  onDelete: () => void;
+}) {
   const [parentInfo, setParentInfo] = useState<NamedItemValue>({
     item: null,
     name: "",
   });
   const [fields, fieldsControl] = useList<TableField<string | null>>([]);
 
-  const swapFields = useCallback((index1: number, index2: number) => {
-    fieldsControl.set((fields) => {
-      const copy = [...fields];
-      copy[index1] = fields[index2];
-      copy[index2] = fields[index1];
-      return copy;
-    });
-  }, []);
+  useEffect(() => {
+    if (props.tableStructure) {
+      setParentInfo({
+        item: props.tableStructure.parentItem,
+        name: props.tableStructure.name,
+      });
+      fieldsControl.set(props.tableStructure.fields);
+    } else {
+      setParentInfo({ item: null, name: "" });
+      fieldsControl.set([]);
+    }
+  }, [props.tableStructure]);
+
+  const isValidStructure = () => {
+    if (!parentInfo.name || !parentInfo.item) return false;
+    for (const field of fields) {
+      if (!field.name || !field.property) return false;
+    }
+    return true;
+  };
 
   return (
-    <>
-      <div css={{ display: "flex", paddingTop: "0.5em" }}>
-        <Typography variant="h5">Is instance(</Typography>
-        <ItemSearch
-          type="property"
-          value={instanceProp}
-          onChange={(value) => setInstanceProp(value && value.id)}
-          sx={{ flex: "1" }}
-        />
-        <Typography variant="h5">) of</Typography>
-      </div>
-      <NamedItem type="item" value={parentInfo} onChange={setParentInfo} />
-      <Divider sx={{ marginY: "0.5em" }} />
-      <SortableList ids={fields.map((field) => field.uuid)} onSwap={swapFields}>
-        {fields.map((field, i) => (
-          <EditTableField
-            key={field.uuid}
-            field={field}
-            onUpdate={(value) => fieldsControl.updateAt(i, value)}
-            onRemove={() => fieldsControl.removeAt(i)}
+    <div
+      css={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+      }}
+    >
+      <div css={{ flex: "1" }}>
+        <div
+          css={{
+            display: "flex",
+            paddingTop: "0.5em",
+          }}
+        >
+          <Typography variant="h5">Is instance(</Typography>
+          <ItemSearch
+            type="property"
+            value={props.isInstanceProperty}
+            onChange={(value) =>
+              props.onChangeInstanceProperty(value && value.id)
+            }
+            sx={{ flex: "1" }}
           />
-        ))}
-      </SortableList>
-      <Button
-        onClick={() => {
-          fieldsControl.push({
-            uuid: crypto.randomUUID(),
-            property: null,
-            name: "",
-          });
-        }}
-      >
-        Add
-      </Button>
-    </>
+          <Typography variant="h5">) of</Typography>
+        </div>
+        <NamedItem type="item" value={parentInfo} onChange={setParentInfo} />
+        <Divider sx={{ marginY: "0.5em" }} />
+        <SortableList
+          ids={fields.map((field) => field.uuid)}
+          onSwap={fieldsControl.swap}
+        >
+          {fields.map((field, i) => (
+            <EditTableField
+              key={field.uuid}
+              field={field}
+              onUpdate={(value) => fieldsControl.updateAt(i, value)}
+              onRemove={() => fieldsControl.removeAt(i)}
+            />
+          ))}
+        </SortableList>
+        <Button
+          css={{ alignSelf: "flex-start" }}
+          onClick={() => {
+            fieldsControl.push({
+              uuid: crypto.randomUUID(),
+              property: null,
+              name: "",
+            });
+          }}
+        >
+          Add
+        </Button>
+      </div>
+
+      <ButtonGroup variant="outlined" fullWidth>
+        <Button
+          sx={{ flex: "3" }}
+          disabled={!isValidStructure()}
+          onClick={() =>
+            props.onChangeStucture({
+              name: parentInfo.name,
+              parentItem: parentInfo.item!,
+              // @ts-ignore
+              fields: fields,
+            })
+          }
+        >
+          Save
+        </Button>
+        {props.existing && (
+          <Button sx={{ flex: "1" }} color="error" onClick={props.onDelete}>
+            Delete
+          </Button>
+        )}
+      </ButtonGroup>
+    </div>
   );
 }
