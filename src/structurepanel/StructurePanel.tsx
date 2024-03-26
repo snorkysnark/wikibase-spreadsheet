@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { MouseEventHandler, useEffect, useRef, useState } from "react";
 import {
   Button,
   ButtonGroup,
   Divider,
   IconButton,
+  Menu,
+  MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
-import { Delete as DeleteIcon, DragIndicator } from "@mui/icons-material";
+import { MoreHoriz, DragIndicator } from "@mui/icons-material";
 import ItemSearch from "./ItemSearch";
 import { EntityType } from "src/wikibase";
 import {
@@ -66,22 +68,14 @@ function NamedItem(props: {
   );
 }
 
-function DeleteButton(props: Parameters<typeof IconButton>[0]) {
-  return (
-    <IconButton aria-label="delete" {...props}>
-      <DeleteIcon />
-    </IconButton>
-  );
-}
-
 function EditTableField({
   field,
   onUpdate,
-  onRemove,
+  onClickMenu,
 }: {
   field: TableField<string | null>;
   onUpdate: (field: TableField<string | null>) => void;
-  onRemove: () => void;
+  onClickMenu: MouseEventHandler<HTMLButtonElement>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: field.uuid });
@@ -114,7 +108,13 @@ function EditTableField({
           })
         }
       />
-      <DeleteButton size="small" onClick={onRemove} />
+      <IconButton
+        aria-label="property settings"
+        size="small"
+        onClick={onClickMenu}
+      >
+        <MoreHoriz />
+      </IconButton>
     </div>
   );
 }
@@ -154,6 +154,12 @@ export default function StructurePanel(props: {
     return true;
   };
 
+  const [fieldMenu, setFieldMenu] = useState<{
+    index: number;
+    anchor: HTMLElement;
+  } | null>(null);
+  useEffect(() => setFieldMenu(null), [fields]);
+
   return (
     <div
       css={{
@@ -191,10 +197,27 @@ export default function StructurePanel(props: {
               key={field.uuid}
               field={field}
               onUpdate={(value) => fieldsControl.updateAt(i, value)}
-              onRemove={() => fieldsControl.removeAt(i)}
+              onClickMenu={(event) =>
+                setFieldMenu({ index: i, anchor: event.target as HTMLElement })
+              }
             />
           ))}
         </SortableList>
+        <Menu
+          open={!!fieldMenu}
+          anchorEl={fieldMenu?.anchor}
+          onClose={() => setFieldMenu(null)}
+        >
+          <MenuItem>Create</MenuItem>
+          <MenuItem
+            onClick={() => {
+              if (fieldMenu) fieldsControl.removeAt(fieldMenu.index);
+              setFieldMenu(null);
+            }}
+          >
+            Delete
+          </MenuItem>
+        </Menu>
         <Button
           css={{ alignSelf: "flex-start" }}
           onClick={() => {
