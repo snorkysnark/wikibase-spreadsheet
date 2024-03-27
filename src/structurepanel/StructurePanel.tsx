@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { MoreHoriz, DragIndicator } from "@mui/icons-material";
 import ItemSearch from "./ItemSearch";
-import { EntityType } from "src/wikibase";
+import { EntityType, getItemUrl } from "src/wikibase";
 import {
   TableField,
   TableStructure,
@@ -21,6 +21,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import SortableList from "./SortableList";
 import { useList } from "src/hooks";
+import CreateEntityDialog from "./CreateEntityDialog";
 
 interface NamedItemValue {
   item: string | null;
@@ -160,6 +161,12 @@ export default function StructurePanel(props: {
   } | null>(null);
   useEffect(() => setFieldMenu(null), [fields]);
 
+  const [createEntityDialog, setCreateEntityDialog] = useState<{
+    type: EntityType;
+    initialName: string;
+    targetField: number;
+  } | null>(null);
+
   return (
     <div
       css={{
@@ -208,16 +215,49 @@ export default function StructurePanel(props: {
           anchorEl={fieldMenu?.anchor}
           onClose={() => setFieldMenu(null)}
         >
-          <MenuItem>Create</MenuItem>
           <MenuItem
             onClick={() => {
-              if (fieldMenu) fieldsControl.removeAt(fieldMenu.index);
               setFieldMenu(null);
+              if (fieldMenu)
+                setCreateEntityDialog({
+                  type: "property",
+                  initialName: fields[fieldMenu.index].name,
+                  targetField: fieldMenu.index,
+                });
+            }}
+          >
+            Create
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              setFieldMenu(null);
+              if (fieldMenu) fieldsControl.removeAt(fieldMenu.index);
             }}
           >
             Delete
           </MenuItem>
         </Menu>
+        {createEntityDialog && (
+          <CreateEntityDialog
+            type={createEntityDialog.type}
+            defaultName={createEntityDialog.initialName}
+            handleExit={(data) => {
+              setCreateEntityDialog(null);
+              if (data) {
+                window.open(getItemUrl(data.type, data.id), "_blank")?.focus();
+
+                if (createEntityDialog) {
+                  const index = createEntityDialog.targetField;
+                  fieldsControl.updateAt(index, {
+                    uuid: fields[index].uuid,
+                    property: data.id,
+                    name: data.name,
+                  });
+                }
+              }
+            }}
+          />
+        )}
         <Button
           css={{ alignSelf: "flex-start" }}
           onClick={() => {

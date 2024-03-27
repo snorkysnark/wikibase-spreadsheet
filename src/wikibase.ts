@@ -1,3 +1,4 @@
+const WIKI_URL = "https://e-qvadrat.wikibase.cloud/wiki";
 const API_URL = "http://localhost:5174/api.php";
 const LOGIN_RETURN_URL = "http://localhost:5173/";
 
@@ -38,7 +39,7 @@ async function fetchCsrfToken(): Promise<string> {
     .then((json) => json.query.tokens.csrftoken);
 }
 
-type CheckLoginParams =
+export type CheckLoginParams =
   | { action: "check" }
   | {
       action: "login";
@@ -48,7 +49,7 @@ type CheckLoginParams =
     }
   | { action: "logout" };
 
-async function checkLogin(action: CheckLoginParams): Promise<boolean> {
+export async function checkLogin(action: CheckLoginParams): Promise<boolean> {
   switch (action.action) {
     case "check":
       // Check if already logged in
@@ -106,9 +107,9 @@ async function checkLogin(action: CheckLoginParams): Promise<boolean> {
   }
 }
 
-type EntityType = "form" | "item" | "lexeme" | "property" | "sense";
+export type EntityType = "form" | "item" | "lexeme" | "property" | "sense";
 
-interface SearchEntitiesParams {
+export interface SearchEntitiesParams {
   search: string;
   language?: string;
   type?: EntityType;
@@ -117,7 +118,9 @@ interface SearchEntitiesParams {
   props?: string;
 }
 
-async function searchEntities(params: SearchEntitiesParams): Promise<any> {
+export async function searchEntities(
+  params: SearchEntitiesParams
+): Promise<any> {
   return fetch(
     `${API_URL}?${new URLSearchParams({
       ...params,
@@ -136,9 +139,42 @@ async function searchEntities(params: SearchEntitiesParams): Promise<any> {
   });
 }
 
-export {
-  checkLogin,
-  searchEntities,
-  type SearchEntitiesParams,
-  type EntityType,
-};
+export interface EditEntityParams {
+  id?: string;
+  new?: EntityType;
+  data: any;
+}
+
+export function entityDataEn(values: any) {
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [
+      key,
+      { en: { language: "en", value } },
+    ])
+  );
+}
+
+export async function editEntity(params: EditEntityParams) {
+  const csrfToken = await fetchCsrfToken();
+  return fetch(API_URL, {
+    method: "post",
+    body: new URLSearchParams({
+      action: "wbeditentity",
+      token: csrfToken,
+      format: "json",
+      ...(params.id && { id: params.id }),
+      ...(params.new && { new: params.new }),
+      data: JSON.stringify(params.data),
+    }),
+    credentials: "include",
+  }).then((response) => {
+    if (response.ok) {
+      return response.json();
+    }
+    throw new ResponseError("Bad response", response);
+  });
+}
+
+export function getItemUrl(type: EntityType, id: string) {
+  return `${WIKI_URL}/${type}:${id}`;
+}
