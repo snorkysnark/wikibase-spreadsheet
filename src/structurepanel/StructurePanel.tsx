@@ -1,4 +1,10 @@
-import { MouseEventHandler, useEffect, useRef, useState } from "react";
+import {
+  MouseEventHandler,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Button,
   ButtonGroup,
@@ -22,6 +28,7 @@ import { CSS } from "@dnd-kit/utilities";
 import SortableList from "./SortableList";
 import { useList } from "src/hooks";
 import CreateEntityDialog from "./CreateEntityDialog";
+import { produce } from "immer";
 
 interface NamedItemValue {
   item: string | null;
@@ -120,6 +127,8 @@ function EditTableField({
   );
 }
 
+type FieldIndex = number | "table";
+
 export default function StructurePanel(props: {
   isInstanceProperty: string | null;
   onChangeInstanceProperty: (value: string | null) => void;
@@ -133,6 +142,27 @@ export default function StructurePanel(props: {
     name: "",
   });
   const [fields, fieldsControl] = useList<TableField<string | null>>([]);
+  const getFieldNameAt = useCallback(
+    (index: FieldIndex) => {
+      return index === "table" ? parentInfo.name : fields[index].name;
+    },
+    [parentInfo, fields]
+  );
+  const updateFieldAt = useCallback(
+    (index: FieldIndex, id: string | null, name: string) => {
+      if (index === "table") {
+        setParentInfo({ item: id, name });
+      } else {
+        fieldsControl.set(
+          produce((fields) => {
+            fields[index].property = id;
+            fields[index].name = name;
+          })
+        );
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (props.tableStructure) {
@@ -156,7 +186,8 @@ export default function StructurePanel(props: {
   };
 
   const [fieldMenu, setFieldMenu] = useState<{
-    index: number;
+    type: EntityType;
+    targetField: number | "table";
     anchor: HTMLElement;
   } | null>(null);
   useEffect(() => setFieldMenu(null), [fields]);
@@ -164,7 +195,7 @@ export default function StructurePanel(props: {
   const [createEntityDialog, setCreateEntityDialog] = useState<{
     type: EntityType;
     initialName: string;
-    targetField: number;
+    targetField: number | "table";
   } | null>(null);
 
   return (
@@ -193,7 +224,22 @@ export default function StructurePanel(props: {
           />
           <Typography variant="h5">) of</Typography>
         </div>
-        <NamedItem type="item" value={parentInfo} onChange={setParentInfo} />
+        <div css={{ display: "flex", alignItems: "center" }}>
+          <NamedItem type="item" value={parentInfo} onChange={setParentInfo} />
+          <IconButton
+            aria-label="property settings"
+            size="small"
+            onClick={(event) =>
+              setFieldMenu({
+                type: "item",
+                targetField: "table",
+                anchor: event.target as HTMLElement,
+              })
+            }
+          >
+            <MoreHoriz />
+          </IconButton>
+        </div>
         <Divider sx={{ marginY: "0.5em" }} />
         <SortableList
           ids={fields.map((field) => field.uuid)}
@@ -205,7 +251,11 @@ export default function StructurePanel(props: {
               field={field}
               onUpdate={(value) => fieldsControl.updateAt(i, value)}
               onClickMenu={(event) =>
-                setFieldMenu({ index: i, anchor: event.target as HTMLElement })
+                setFieldMenu({
+                  type: "property",
+                  targetField: i,
+                  anchor: event.target as HTMLElement,
+                })
               }
             />
           ))}
@@ -220,22 +270,30 @@ export default function StructurePanel(props: {
               setFieldMenu(null);
               if (fieldMenu)
                 setCreateEntityDialog({
-                  type: "property",
-                  initialName: fields[fieldMenu.index].name,
-                  targetField: fieldMenu.index,
+                  type: fieldMenu.type,
+                  initialName: getFieldNameAt(fieldMenu.targetField),
+                  targetField: fieldMenu.targetField,
                 });
             }}
           >
-            Create
+            New
           </MenuItem>
-          <MenuItem
-            onClick={() => {
-              setFieldMenu(null);
-              if (fieldMenu) fieldsControl.removeAt(fieldMenu.index);
-            }}
-          >
-            Delete
-          </MenuItem>
+          {(props.existing || typeof fieldMenu?.targetField === "number") && (
+            <MenuItem
+              onClick={() => {
+                setFieldMenu(null);
+                if (fieldMenu) {
+                  if (fieldMenu.targetField === "table") {
+                    props.onDelete();
+                  } else {
+                    fieldsControl.removeAt(fieldMenu.targetField);
+                  }
+                }
+              }}
+            >
+              Delete
+            </MenuItem>
+          )}
         </Menu>
         {createEntityDialog && (
           <CreateEntityDialog
@@ -248,11 +306,7 @@ export default function StructurePanel(props: {
 
                 if (createEntityDialog) {
                   const index = createEntityDialog.targetField;
-                  fieldsControl.updateAt(index, {
-                    uuid: fields[index].uuid,
-                    property: data.id,
-                    name: data.name,
-                  });
+                  updateFieldAt(index, data.id, data.name);
                 }
               }
             }}
@@ -287,11 +341,6 @@ export default function StructurePanel(props: {
         >
           Save
         </Button>
-        {props.existing && (
-          <Button sx={{ flex: "1" }} color="error" onClick={props.onDelete}>
-            Delete
-          </Button>
-        )}
       </ButtonGroup>
     </div>
   );
