@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Dialog,
   DialogActions,
@@ -6,9 +7,16 @@ import {
   DialogTitle,
   TextField,
 } from "@mui/material";
-import { FormEvent, useEffect } from "react";
+import { FormEvent } from "react";
 import { useMutation } from "react-query";
-import { EntityType, editEntity, entityDataEn } from "src/wikibase";
+import {
+  EditEntityData,
+  EditEntityParams,
+  EntityType,
+  WikibaseError,
+  editEntity,
+  entityDataEn,
+} from "src/wikibase";
 
 function BlockTextField(props: Parameters<typeof TextField>[0]) {
   return (
@@ -37,20 +45,22 @@ export default function CreateEntityDialog({
   ) => void;
   defaultName?: string;
 }) {
-  const entityMutation = useMutation(editEntity);
-  useEffect(() => {
-    if (entityMutation.isSuccess) {
-      const {
-        type,
-        id,
-        labels: {
-          en: { value: name },
-        },
-      } = entityMutation.data.entity;
+  const entityMutation = useMutation<EditEntityData, Error, EditEntityParams>(
+    editEntity,
+    {
+      onSuccess: (data) => {
+        const {
+          type,
+          id,
+          labels: {
+            en: { value: name },
+          },
+        } = data.entity;
 
-      handleExit({ type, id, name });
+        handleExit({ type, id, name });
+      },
     }
-  });
+  );
 
   const closeDialog = () => handleExit(null);
 
@@ -99,6 +109,13 @@ export default function CreateEntityDialog({
           multiline
           minRows={2}
         />
+        {entityMutation.error && (
+          <Alert severity="error">
+            {entityMutation.error instanceof WikibaseError
+              ? entityMutation.error.messages.map((message) => <p>{message}</p>)
+              : entityMutation.error.message}
+          </Alert>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={closeDialog}>Cancel</Button>

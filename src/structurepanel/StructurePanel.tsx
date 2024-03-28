@@ -23,8 +23,6 @@ import SortableList from "./SortableList";
 import { useList } from "src/hooks";
 import CreateEntityDialog from "./CreateEntityDialog";
 
-import { searchEntities } from "src/wikibase";
-
 interface NamedItemValue {
   item: string | null;
   name: string;
@@ -271,9 +269,6 @@ export default function StructurePanel(props: {
           }}
         >
           Add
-        </Button>
-        <Button onClick={() => searchEntities({ search: "aaa", type: "fff" })}>
-          Request
         </Button>
       </div>
 

@@ -2,7 +2,7 @@ const WIKI_URL = "https://e-qvadrat.wikibase.cloud/wiki";
 const API_URL = "http://localhost:5174/api.php";
 const LOGIN_RETURN_URL = "http://localhost:5173/";
 
-class ResponseError extends Error {
+export class ResponseError extends Error {
   response: Response;
 
   constructor(response: Response) {
@@ -15,12 +15,30 @@ class ResponseError extends Error {
   }
 }
 
-class WikibaseError extends Error {
-  data: any;
+export interface ErrorData {
+  error: {
+    code: string;
+    info: string;
+    messages?: {
+      name: string;
+      parameters: string[];
+      html: { ["*"]: string };
+    }[];
+  };
+}
 
-  constructor(data: any) {
+export class WikibaseError extends Error {
+  data: ErrorData;
+
+  constructor(data: ErrorData) {
     super(data.error.info || "Unknown error");
     this.data = data;
+  }
+
+  public get messages(): string[] {
+    return [
+      ...(this.data.error.messages?.map((message) => message.html["*"]) || []),
+    ];
   }
 
   static raiseForErrors(data: any) {
@@ -181,7 +199,23 @@ export function entityDataEn(values: any) {
   );
 }
 
-export async function editEntity(params: EditEntityParams) {
+export interface EditEntityData {
+  entity: {
+    type: EntityType;
+    datatype: string;
+    id: string;
+    labels: {
+      en: { language: string; value: string };
+    };
+    descriptions: {
+      en: { language: string; value: string };
+    };
+  };
+}
+
+export async function editEntity(
+  params: EditEntityParams
+): Promise<EditEntityData> {
   const csrfToken = await fetchCsrfToken();
   return fetch(API_URL, {
     method: "post",
