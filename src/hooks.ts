@@ -1,6 +1,11 @@
 import { produce } from "immer";
-import { Dispatch, SetStateAction, useCallback, useState } from "react";
-import { useEffectOnce } from "react-use";
+import {
+  Dispatch,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 export function useList<T>(initialState: T[]): [
   T[],
@@ -61,14 +66,14 @@ export function useLocalStorage<T>(
 ): [T, Dispatch<SetStateAction<T>>] {
   const [state, setState] = useState(initialValue);
 
-  useEffectOnce(() => {
+  useEffect(() => {
     const storedValue = localStorage.getItem(key);
     if (storedValue) {
       setState(JSON.parse(storedValue));
     } else {
       localStorage.setItem(key, JSON.stringify(initialValue));
     }
-  });
+  }, []);
 
   const setStateAndSave = useCallback(
     (value: SetStateAction<T>) => {
