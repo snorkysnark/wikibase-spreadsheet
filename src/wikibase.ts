@@ -1,6 +1,6 @@
 const WIKI_URL = "https://e-qvadrat.wikibase.cloud/wiki";
-const API_URL = "http://localhost:5174/api.php";
-const LOGIN_RETURN_URL = "http://localhost:5173/";
+const API_URL = "http://localhost:8030/api.php";
+const CLIENT_URL = "http://localhost:5173";
 
 export class ResponseError extends Error {
   response: Response;
@@ -47,10 +47,19 @@ export class WikibaseError extends Error {
 }
 
 export async function fetchLoginToken(): Promise<string> {
-  return fetch(API_URL + "?action=query&meta=tokens&type=login&format=json", {
-    method: "POST",
-    credentials: "include",
-  })
+  return fetch(
+    `${API_URL}?${new URLSearchParams({
+      action: "query",
+      meta: "tokens",
+      type: "login",
+      format: "json",
+      origin: CLIENT_URL,
+    })}`,
+    {
+      method: "POST",
+      credentials: "include",
+    }
+  )
     .then((response) => {
       ResponseError.raiseForStatus(response);
       return response.json();
@@ -62,10 +71,18 @@ export async function fetchLoginToken(): Promise<string> {
 }
 
 async function fetchCsrfToken(): Promise<string> {
-  return fetch(API_URL + "?action=query&meta=tokens&format=json", {
-    method: "POST",
-    credentials: "include",
-  })
+  return fetch(
+    `${API_URL}?${new URLSearchParams({
+      action: "query",
+      meta: "tokens",
+      format: "json",
+      origin: CLIENT_URL,
+    })}`,
+    {
+      method: "POST",
+      credentials: "include",
+    }
+  )
     .then((response) => {
       ResponseError.raiseForStatus(response);
       return response.json();
@@ -77,9 +94,17 @@ async function fetchCsrfToken(): Promise<string> {
 }
 
 export async function assertLogin() {
-  return fetch(API_URL + "?action=query&assert=user&format=json", {
-    credentials: "include",
-  })
+  return fetch(
+    `${API_URL}?${new URLSearchParams({
+      action: "query",
+      assert: "user",
+      format: "json",
+      origin: CLIENT_URL,
+    })}`,
+    {
+      credentials: "include",
+    }
+  )
     .then((response) => {
       ResponseError.raiseForStatus(response);
       return response.json();
@@ -110,7 +135,8 @@ export async function login(params: LoginParams): Promise<LoginReturnType> {
     body: new URLSearchParams({
       action: "clientlogin",
       logintoken: loginToken,
-      loginreturnurl: LOGIN_RETURN_URL,
+      origin: CLIENT_URL,
+      loginreturnurl: CLIENT_URL,
       username: params.username,
       password: params.password,
       ...(params.rememberMe && { rememberMe: "1" }),
@@ -136,6 +162,7 @@ export async function logout() {
       action: "logout",
       token: csrfToken,
       format: "json",
+      origin: CLIENT_URL,
     }),
     credentials: "include",
   })
@@ -169,6 +196,7 @@ export async function searchEntities(
       action: "wbsearchentities",
       language: params.language || "en",
       format: "json",
+      origin: CLIENT_URL,
     })}`,
     {
       credentials: "include",
@@ -223,6 +251,7 @@ export async function editEntity(
       action: "wbeditentity",
       token: csrfToken,
       format: "json",
+      origin: CLIENT_URL,
       ...(params.id && { id: params.id }),
       ...(params.new && { new: params.new }),
       data: JSON.stringify(params.data),
