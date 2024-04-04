@@ -1,11 +1,11 @@
-import { useContext, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { LoginContext } from "./Login";
 import { AppBar, Button, MenuItem, Select, Toolbar } from "@mui/material";
-import { HotTable } from "@handsontable/react";
 import StructurePanel from "./structurepanel/StructurePanel";
 import { StructureSettings } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
+import TableEditor from "./TableEditor";
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
@@ -16,6 +16,14 @@ export default function MainPage() {
     });
 
   const [currentTableUuid, setCurrentTableUuid] = useState<string | null>(null);
+  const currentTableIndex = useMemo<number | null>(() => {
+    if (!currentTableUuid) return null;
+
+    const index = tableStructure.tables.findIndex(
+      (table) => table.uuid == currentTableUuid
+    );
+    return index === -1 ? null : index;
+  }, [tableStructure, currentTableUuid]);
 
   return (
     <div
@@ -57,10 +65,11 @@ export default function MainPage() {
       </AppBar>
       <div css={{ width: "100%", height: "100%", display: "flex" }}>
         <div css={{ flex: "1" }}>
-          <HotTable
-            colHeaders={true}
-            licenseKey="non-commercial-and-evaluation"
-          />
+          {currentTableIndex !== null && (
+            <TableEditor
+              tableStructure={tableStructure.tables[currentTableIndex]}
+            />
+          )}
         </div>
         <div
           css={{
@@ -77,24 +86,21 @@ export default function MainPage() {
                 })
               )
             }
-            existing={!!currentTableUuid}
+            existing={currentTableIndex !== null}
             tableStructure={
-              (currentTableUuid &&
-                tableStructure.tables.find(
-                  (table) => table.uuid === currentTableUuid
-                )) ||
-              null
+              currentTableIndex !== null
+                ? tableStructure.tables[currentTableIndex]
+                : null
             }
             onChangeStucture={(value) => {
-              if (currentTableUuid) {
+              if (currentTableIndex !== null) {
                 // Existing table
                 setTableStructure(
                   produce((settings) => {
-                    settings.tables = settings.tables.map((table) =>
-                      table.uuid === currentTableUuid
-                        ? { uuid: currentTableUuid, ...value }
-                        : table
-                    );
+                    settings.tables[currentTableIndex].name = value.name;
+                    settings.tables[currentTableIndex].parentItem =
+                      value.parentItem;
+                    settings.tables[currentTableIndex].fields = value.fields;
                   })
                 );
               } else {
