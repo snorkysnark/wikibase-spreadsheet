@@ -1,5 +1,11 @@
-const WIKI_URL = "https://e-qvadrat.wikibase.cloud/wiki";
-const API_URL = "http://localhost:8030/api.php";
+import { SparqlQueryDesc, buildSparqlQuery } from "./sparql";
+
+const BASE_URL = "http://localhost:8030";
+const WIKI_URL = BASE_URL + "/wiki";
+const API_URL = BASE_URL + "/api.php";
+const SPARQL_URL =
+  "http://localhost:8834/proxy/wdqs/bigdata/namespace/wdq/sparql";
+
 const CLIENT_URL = "http://localhost:5173";
 
 export class ResponseError extends Error {
@@ -271,3 +277,21 @@ export async function editEntity(
 export function getItemUrl(type: EntityType, id: string) {
   return `${WIKI_URL}/${type}:${id}`;
 }
+
+export async function sparqlQuery(query: string | SparqlQueryDesc) {
+  const queryStr = typeof query === "string" ? query : buildSparqlQuery(query);
+
+  return fetch(`${SPARQL_URL}?query=${encodeURIComponent(queryStr)}`, {
+    headers: { Accept: "application/sparql-results+json" },
+  })
+    .then((response) => {
+      ResponseError.raiseForStatus(response);
+      return response.json();
+    })
+    .then((json) => {
+      WikibaseError.raiseForErrors(json);
+      return json;
+    });
+}
+
+export type { SparqlQueryDesc };

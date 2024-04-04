@@ -65,8 +65,9 @@ export default function MainPage() {
       </AppBar>
       <div css={{ width: "100%", height: "100%", display: "flex" }}>
         <div css={{ flex: "1" }}>
-          {currentTableIndex !== null && (
+          {currentTableIndex !== null && tableStructure.isInstanceProperty && (
             <TableEditor
+              isInstanceProp={tableStructure.isInstanceProperty}
               tableStructure={tableStructure.tables[currentTableIndex]}
             />
           )}
