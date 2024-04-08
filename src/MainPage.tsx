@@ -1,60 +1,29 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useMemo, useState } from "react";
 import { LoginContext } from "./Login";
-import {
-  AppBar,
-  Button,
-  IconButton,
-  MenuItem,
-  Select,
-  Toolbar,
-} from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import { AppBar, Button, MenuItem, Select, Toolbar } from "@mui/material";
 import StructurePanel from "./structurepanel/StructurePanel";
 import { StructureSettings } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
 import TableEditor from "./TableEditor";
-import { TableRows, queryRows } from "./tableContent";
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
-  const [tableSettings, setTableSettings] = useLocalStorage<StructureSettings>(
-    "table-structure",
-    {
+  const [tableStructure, setTableStructure] =
+    useLocalStorage<StructureSettings>("table-structure", {
       isInstanceProperty: null,
       tables: [],
-    }
-  );
+    });
 
   const [currentTableUuid, setCurrentTableUuid] = useState<string | null>(null);
   const currentTableIndex = useMemo<number | null>(() => {
     if (!currentTableUuid) return null;
 
-    const index = tableSettings.tables.findIndex(
+    const index = tableStructure.tables.findIndex(
       (table) => table.uuid == currentTableUuid
     );
     return index === -1 ? null : index;
-  }, [tableSettings, currentTableUuid]);
-
-  const [tableContent, setTableContent] = useState<TableRows | null>(null);
-  useEffect(() => {
-    setTableContent(null);
-
-    if (tableSettings.isInstanceProperty && currentTableIndex !== null) {
-      let valid = true;
-
-      queryRows(
-        tableSettings.isInstanceProperty,
-        tableSettings.tables[currentTableIndex]
-      ).then((data) => {
-        if (valid) setTableContent(data);
-      });
-
-      return () => {
-        valid = false;
-      };
-    }
-  }, [tableSettings, currentTableIndex]);
+  }, [tableStructure, currentTableUuid]);
 
   return (
     <div
@@ -82,15 +51,12 @@ export default function MainPage() {
             }
           >
             <MenuItem value="new-table">New Table</MenuItem>
-            {tableSettings.tables.map((table) => (
+            {tableStructure.tables.map((table) => (
               <MenuItem key={table.uuid} value={table.uuid}>
                 {table.name}
               </MenuItem>
             ))}
           </Select>
-          <IconButton aria-label="add row">
-            <AddIcon />
-          </IconButton>
           <div css={{ flex: "1" }} />
           <Button variant="contained" onClick={logout}>
             Logout
@@ -99,10 +65,10 @@ export default function MainPage() {
       </AppBar>
       <div css={{ width: "100%", height: "100%", display: "flex" }}>
         <div css={{ flex: "1" }}>
-          {currentTableIndex !== null && tableContent && (
+          {currentTableIndex !== null && tableStructure.isInstanceProperty && (
             <TableEditor
-              tableStructure={tableSettings.tables[currentTableIndex]}
-              data={tableContent}
+              isInstanceProp={tableStructure.isInstanceProperty}
+              tableStructure={tableStructure.tables[currentTableIndex]}
             />
           )}
         </div>
@@ -113,9 +79,9 @@ export default function MainPage() {
           }}
         >
           <StructurePanel
-            isInstanceProperty={tableSettings.isInstanceProperty}
+            isInstanceProperty={tableStructure.isInstanceProperty}
             onChangeInstanceProperty={(isInstanceProperty) =>
-              setTableSettings(
+              setTableStructure(
                 produce((tableStructure) => {
                   tableStructure.isInstanceProperty = isInstanceProperty;
                 })
@@ -124,13 +90,13 @@ export default function MainPage() {
             existing={currentTableIndex !== null}
             tableStructure={
               currentTableIndex !== null
-                ? tableSettings.tables[currentTableIndex]
+                ? tableStructure.tables[currentTableIndex]
                 : null
             }
             onChangeStucture={(value) => {
               if (currentTableIndex !== null) {
                 // Existing table
-                setTableSettings(
+                setTableStructure(
                   produce((settings) => {
                     settings.tables[currentTableIndex].name = value.name;
                     settings.tables[currentTableIndex].parentItem =
@@ -141,7 +107,7 @@ export default function MainPage() {
               } else {
                 // New table
                 const newUuid = crypto.randomUUID();
-                setTableSettings(
+                setTableStructure(
                   produce((settings) => {
                     settings.tables.push({ uuid: newUuid, ...value });
                   })
@@ -152,7 +118,7 @@ export default function MainPage() {
             onDelete={() => {
               if (currentTableUuid) {
                 setCurrentTableUuid(null);
-                setTableSettings(
+                setTableStructure(
                   produce((settings) => {
                     settings.tables = settings.tables.filter(
                       (table) => table.uuid !== currentTableUuid
