@@ -1,16 +1,8 @@
-import {
-  ForwardedRef,
-  MutableRefObject,
-  forwardRef,
-  useCallback,
-  useImperativeHandle,
-  useRef,
-} from "react";
+import { ForwardedRef, forwardRef, useImperativeHandle, useRef } from "react";
 import { TableStructure } from "./structure";
 import { TableRows } from "./tableContent";
 import { HotTable } from "@handsontable/react";
 import HotTableClass from "node_modules/@handsontable/react/hotTableClass";
-import Handsontable from "handsontable";
 
 export interface TableEditorHandle {
   addRow: () => void;
@@ -27,28 +19,22 @@ const TableEditor = forwardRef(function TableEditor(
   ref: ForwardedRef<TableEditorHandle>
 ) {
   const hotRef = useRef<HotTableClass | null>(null);
-  const hotBatch = useCallback(
-    (wrappedOperations: (hot: Handsontable) => void) => {
-      const hot = hotRef.current?.hotInstance;
-      if (hot) {
-        hot.batch(() => wrappedOperations(hot));
-      }
-    },
-    []
-  );
+  const hotInstance = () => hotRef.current?.hotInstance;
 
   useImperativeHandle(ref, () => {
     return {
       addRow: () => {
-        hotBatch((hot) => {
-          hot.alter("insert_row_below");
-          const lastRow = hot.getData().length - 1;
+        const hot = hotInstance();
+        if (hot)
+          hot.batch(() => {
+            hot.alter("insert_row_below");
+            const lastRow = hot.getData().length - 1;
 
-          // 0th column is the label
-          for (let i = 0; i <= tableStructure.fields.length; i++) {
-            hot.setCellMeta(lastRow, i, "className", "edited");
-          }
-        });
+            // 0th column is the label
+            for (let i = 0; i <= tableStructure.fields.length; i++) {
+              hot.setCellMeta(lastRow, i, "className", "edited");
+            }
+          });
       },
     };
   });
@@ -67,7 +53,9 @@ const TableEditor = forwardRef(function TableEditor(
       licenseKey="non-commercial-and-evaluation"
       afterChange={(changes, source) => {
         if (source === "edit" && changes) {
-          hotBatch((hot) => {
+          const hot = hotInstance()!;
+
+          hot.batch(() => {
             for (const [row, column, prevValue, nextValue] of changes) {
               if (row < data.rowHeaders.length) {
                 let originalValue = hot.getCellMeta(
@@ -93,7 +81,7 @@ const TableEditor = forwardRef(function TableEditor(
               }
             }
           });
-          hotRef.current?.hotInstance?.render();
+          hot.render();
         }
       }}
     />
