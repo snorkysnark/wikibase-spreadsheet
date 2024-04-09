@@ -1,4 +1,10 @@
-import { ForwardedRef, forwardRef, useImperativeHandle, useRef } from "react";
+import {
+  ForwardedRef,
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import { TableStructure } from "./structure";
 import { TableRows } from "./tableContent";
 import { HotTable } from "@handsontable/react";
@@ -7,6 +13,8 @@ import HotTableClass from "node_modules/@handsontable/react/hotTableClass";
 export interface TableEditorHandle {
   addRow: () => void;
 }
+
+type CellChangeNumeric = [number, number, any, any];
 
 const TableEditor = forwardRef(function TableEditor(
   {
@@ -39,6 +47,34 @@ const TableEditor = forwardRef(function TableEditor(
     };
   });
 
+  const afterEdit = useCallback((changes: CellChangeNumeric[]) => {
+    const hot = hotInstance()!;
+    let refresh = false;
+
+    for (const [row, column, prevValue, nextValue] of changes) {
+      // Skip new (non-uploaded) rows
+      if (row >= data.rowHeaders.length) continue;
+
+      // Get or save original value
+      let originalValue = hot.getCellMeta(row, column).originalValue;
+      if (originalValue === undefined) {
+        hot.setCellMeta(row, column, "originalValue", prevValue);
+        originalValue = prevValue;
+      }
+
+      if (nextValue !== originalValue) {
+        hot.setCellMeta(row, column, "edited", true);
+        hot.setCellMeta(row, column, "className", "edited");
+      } else {
+        hot.removeCellMeta(row, column, "edited");
+        hot.removeCellMeta(row, column, "className");
+      }
+      refresh = true;
+    }
+
+    if (refresh) hot.render();
+  }, []);
+
   return (
     <HotTable
       ref={hotRef}
@@ -53,35 +89,7 @@ const TableEditor = forwardRef(function TableEditor(
       licenseKey="non-commercial-and-evaluation"
       afterChange={(changes, source) => {
         if (source === "edit" && changes) {
-          const hot = hotInstance()!;
-
-          hot.batch(() => {
-            for (const [row, column, prevValue, nextValue] of changes) {
-              if (row < data.rowHeaders.length) {
-                let originalValue = hot.getCellMeta(
-                  row,
-                  column as number
-                ).originalValue;
-
-                if (originalValue === undefined) {
-                  hot.setCellMeta(
-                    row,
-                    column as number,
-                    "originalValue",
-                    prevValue
-                  );
-                  originalValue = prevValue;
-                }
-
-                if (nextValue !== originalValue) {
-                  hot.setCellMeta(row, column as number, "className", "edited");
-                } else {
-                  hot.removeCellMeta(row, column as number, "className");
-                }
-              }
-            }
-          });
-          hot.render();
+          afterEdit(changes as CellChangeNumeric[]);
         }
       }}
     />
