@@ -44,6 +44,7 @@ const TableEditor = forwardRef(function TableEditor(
           hot.alter("insert_row_below");
           const lastRow = hot.getData().length - 1;
 
+          // 0th column is the label
           for (let i = 0; i <= tableStructure.fields.length; i++) {
             hot.setCellMeta(lastRow, i, "className", "edited");
           }
@@ -67,8 +68,29 @@ const TableEditor = forwardRef(function TableEditor(
       afterChange={(changes, source) => {
         if (source === "edit" && changes) {
           hotBatch((hot) => {
-            for (const [row, column, _, nextValue] of changes) {
-              hot.setCellMeta(row, column as number, "className", "edited");
+            for (const [row, column, prevValue, nextValue] of changes) {
+              if (row < data.rowHeaders.length) {
+                let originalValue = hot.getCellMeta(
+                  row,
+                  column as number
+                ).originalValue;
+
+                if (originalValue === undefined) {
+                  hot.setCellMeta(
+                    row,
+                    column as number,
+                    "originalValue",
+                    prevValue
+                  );
+                  originalValue = prevValue;
+                }
+
+                if (nextValue !== originalValue) {
+                  hot.setCellMeta(row, column as number, "className", "edited");
+                } else {
+                  hot.removeCellMeta(row, column as number, "className");
+                }
+              }
             }
           });
           hotRef.current?.hotInstance?.render();
