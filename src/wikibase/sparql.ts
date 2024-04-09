@@ -5,12 +5,16 @@ export interface SparqlQueryDesc {
 }
 
 export function buildSparqlQuery(desc: SparqlQueryDesc) {
-  const fields = ["?item", ...desc.properties.map((prop) => `?${prop}`)];
+  const fields = [
+    "?item",
+    "?label",
+    ...desc.properties.map((prop) => `?${prop}`),
+  ];
 
   const statements = [
     `?item wdt:${desc.isInstanceProp} wd:${desc.parent}`,
     ...desc.properties
-      .filter((prop) => prop !== "label" && prop !== "description")
+      .filter((prop) => prop !== "description")
       .map((prop) => `wdt:${prop} ?${prop}`),
   ];
 

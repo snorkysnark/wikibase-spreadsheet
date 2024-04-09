@@ -44,7 +44,7 @@ const TableEditor = forwardRef(function TableEditor(
           hot.alter("insert_row_below");
           const lastRow = hot.getData().length - 1;
 
-          for (let i = 0; i < tableStructure.fields.length; i++) {
+          for (let i = 0; i <= tableStructure.fields.length; i++) {
             hot.setCellMeta(lastRow, i, "className", "edited");
           }
         });
@@ -55,7 +55,10 @@ const TableEditor = forwardRef(function TableEditor(
   return (
     <HotTable
       ref={hotRef}
-      colHeaders={tableStructure.fields.map((field) => field.name)}
+      colHeaders={[
+        "label",
+        ...tableStructure.fields.map((field) => field.name),
+      ]}
       rowHeaders={(index) =>
         index < data.rowHeaders.length ? data.rowHeaders[index] : "?"
       }
