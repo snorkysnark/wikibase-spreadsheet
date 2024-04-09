@@ -8,7 +8,7 @@ import {
   Select,
   Toolbar,
 } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
+import { Add as AddIcon, ArrowUpward as UploadIcon } from "@mui/icons-material";
 import StructurePanel from "./structurepanel/StructurePanel";
 import { StructureSettings } from "./structure";
 import { useLocalStorage } from "src/hooks";
@@ -94,6 +94,12 @@ export default function MainPage() {
             onClick={() => hotTable.current?.addRow()}
           >
             <AddIcon />
+          </IconButton>
+          <IconButton
+            aria-label="upload"
+            onClick={() => console.log(hotTable.current?.getModifications())}
+          >
+            <UploadIcon />
           </IconButton>
           <div css={{ flex: "1" }} />
           <Button variant="contained" onClick={logout}>
