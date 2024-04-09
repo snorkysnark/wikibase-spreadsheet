@@ -47,8 +47,7 @@ const TableEditor = forwardRef(function TableEditor(
             // Set random unique label
             hot.setDataAtCell(lastRow, 0, crypto.randomUUID());
 
-            // 0th column is the label
-            for (let i = 0; i <= tableStructure.fields.length; i++) {
+            for (let i = 0; i < tableStructure.fields.length; i++) {
               hot.setCellMeta(lastRow, i, "className", "edited");
             }
           });
@@ -68,18 +67,14 @@ const TableEditor = forwardRef(function TableEditor(
             if (meta.edited) {
               const value = hot.getDataAtCell(meta.row, meta.col);
               const itemId = data.rowHeaders[meta.row];
-              const propertyId =
-                meta.col === 0
-                  ? "label"
-                  : tableStructure.fields[meta.col - 1].property;
+              const propertyId = tableStructure.fields[meta.col].property;
 
               if (!changed[itemId]) changed[itemId] = {};
               changed[itemId][propertyId] = value;
             }
           }
-
-          return { changed, added };
         }
+        return { changed, added };
       },
     };
   });
@@ -116,10 +111,7 @@ const TableEditor = forwardRef(function TableEditor(
     <>
       <HotTable
         ref={hotRef}
-        colHeaders={[
-          "label",
-          ...tableStructure.fields.map((field) => field.name),
-        ]}
+        colHeaders={tableStructure.fields.map((field) => field.name)}
         rowHeaders={(index) =>
           index < data.rowHeaders.length ? data.rowHeaders[index] : "?"
         }

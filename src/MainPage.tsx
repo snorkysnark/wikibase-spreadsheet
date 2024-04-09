@@ -113,7 +113,15 @@ export default function MainPage() {
             <TableEditor
               ref={hotTable}
               data={tableContent}
-              tableStructure={tableSettings.tables[currentTableIndex]}
+              tableStructure={produce(
+                tableSettings.tables[currentTableIndex],
+                (table) => {
+                  table.fields = [
+                    { uuid: "", property: "label", name: "label" },
+                    ...table.fields,
+                  ];
+                }
+              )}
             />
           )}
         </div>
