@@ -38,6 +38,9 @@ const TableEditor = forwardRef(function TableEditor(
             hot.alter("insert_row_below");
             const lastRow = hot.getData().length - 1;
 
+            // Set random unique label
+            hot.setDataAtCell(lastRow, 0, crypto.randomUUID());
+
             // 0th column is the label
             for (let i = 0; i <= tableStructure.fields.length; i++) {
               hot.setCellMeta(lastRow, i, "className", "edited");
