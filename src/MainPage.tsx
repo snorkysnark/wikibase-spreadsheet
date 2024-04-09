@@ -1,29 +1,61 @@
-import { useContext, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { LoginContext } from "./Login";
-import { AppBar, Button, MenuItem, Select, Toolbar } from "@mui/material";
+import {
+  AppBar,
+  Button,
+  IconButton,
+  MenuItem,
+  Select,
+  Toolbar,
+} from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import StructurePanel from "./structurepanel/StructurePanel";
 import { StructureSettings } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
-import TableEditor from "./TableEditor";
+import { TableRows, queryRows } from "./tableContent";
+import TableEditor, { TableEditorHandle } from "./TableEditor";
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
-  const [tableStructure, setTableStructure] =
-    useLocalStorage<StructureSettings>("table-structure", {
+  const [tableSettings, setTableSettings] = useLocalStorage<StructureSettings>(
+    "table-structure",
+    {
       isInstanceProperty: null,
       tables: [],
-    });
+    }
+  );
 
   const [currentTableUuid, setCurrentTableUuid] = useState<string | null>(null);
   const currentTableIndex = useMemo<number | null>(() => {
     if (!currentTableUuid) return null;
-
-    const index = tableStructure.tables.findIndex(
-      (table) => table.uuid == currentTableUuid
+    const index = tableSettings.tables.findIndex(
+      (table) => table.uuid === currentTableUuid
     );
-    return index === -1 ? null : index;
-  }, [tableStructure, currentTableUuid]);
+    return index >= 0 ? index : null;
+  }, [tableSettings, currentTableUuid]);
+
+  const [tableContent, setTableContent] = useState<TableRows | null>(null);
+  useEffect(() => {
+    if (tableSettings.isInstanceProperty && currentTableIndex !== null) {
+      let valid = true;
+
+      queryRows(
+        tableSettings.isInstanceProperty,
+        tableSettings.tables[currentTableIndex]
+      ).then((data) => {
+        if (valid) setTableContent(data);
+      });
+
+      return () => {
+        valid = false;
+      };
+    } else {
+      setTableContent(null);
+    }
+  }, [tableSettings, currentTableIndex]);
+
+  const hotTable = useRef<TableEditorHandle>(null);
 
   return (
     <div
@@ -43,7 +75,7 @@ export default function MainPage() {
         <Toolbar variant="dense">
           <Select
             variant="standard"
-            value={currentTableUuid ?? "new-table"}
+            value={currentTableUuid || "new-table"}
             onChange={(event) =>
               setCurrentTableUuid(
                 event.target.value === "new-table" ? null : event.target.value
@@ -51,12 +83,18 @@ export default function MainPage() {
             }
           >
             <MenuItem value="new-table">New Table</MenuItem>
-            {tableStructure.tables.map((table) => (
+            {tableSettings.tables.map((table) => (
               <MenuItem key={table.uuid} value={table.uuid}>
                 {table.name}
               </MenuItem>
             ))}
           </Select>
+          <IconButton
+            aria-label="add row"
+            onClick={() => hotTable.current?.addRow()}
+          >
+            <AddIcon />
+          </IconButton>
           <div css={{ flex: "1" }} />
           <Button variant="contained" onClick={logout}>
             Logout
@@ -65,10 +103,11 @@ export default function MainPage() {
       </AppBar>
       <div css={{ width: "100%", height: "100%", display: "flex" }}>
         <div css={{ flex: "1" }}>
-          {currentTableIndex !== null && tableStructure.isInstanceProperty && (
+          {currentTableIndex !== null && tableContent && (
             <TableEditor
-              isInstanceProp={tableStructure.isInstanceProperty}
-              tableStructure={tableStructure.tables[currentTableIndex]}
+              ref={hotTable}
+              data={tableContent}
+              tableStructure={tableSettings.tables[currentTableIndex]}
             />
           )}
         </div>
@@ -79,46 +118,44 @@ export default function MainPage() {
           }}
         >
           <StructurePanel
-            isInstanceProperty={tableStructure.isInstanceProperty}
+            isInstanceProperty={tableSettings.isInstanceProperty}
             onChangeInstanceProperty={(isInstanceProperty) =>
-              setTableStructure(
-                produce((tableStructure) => {
-                  tableStructure.isInstanceProperty = isInstanceProperty;
+              setTableSettings(
+                produce((settings) => {
+                  settings.isInstanceProperty = isInstanceProperty;
                 })
               )
             }
             existing={currentTableIndex !== null}
             tableStructure={
               currentTableIndex !== null
-                ? tableStructure.tables[currentTableIndex]
+                ? tableSettings.tables[currentTableIndex]
                 : null
             }
             onChangeStucture={(value) => {
               if (currentTableIndex !== null) {
                 // Existing table
-                setTableStructure(
+                setTableSettings(
                   produce((settings) => {
-                    settings.tables[currentTableIndex].name = value.name;
-                    settings.tables[currentTableIndex].parentItem =
-                      value.parentItem;
-                    settings.tables[currentTableIndex].fields = value.fields;
+                    const { uuid } = settings.tables[currentTableIndex];
+                    settings.tables[currentTableIndex] = { uuid, ...value };
                   })
                 );
               } else {
                 // New table
-                const newUuid = crypto.randomUUID();
-                setTableStructure(
+                const uuid = crypto.randomUUID();
+                setTableSettings(
                   produce((settings) => {
-                    settings.tables.push({ uuid: newUuid, ...value });
+                    settings.tables.push({ uuid, ...value });
                   })
                 );
-                setCurrentTableUuid(newUuid);
+                setCurrentTableUuid(uuid);
               }
             }}
             onDelete={() => {
               if (currentTableUuid) {
                 setCurrentTableUuid(null);
-                setTableStructure(
+                setTableSettings(
                   produce((settings) => {
                     settings.tables = settings.tables.filter(
                       (table) => table.uuid !== currentTableUuid
