@@ -22,7 +22,7 @@ export async function queryRows(
   const bindingNames: string[] = result.head.vars;
 
   for (const binding of result.results.bindings) {
-    const fullRow = bindingNames.map((name) => binding[name].value);
+    const fullRow = bindingNames.map((name) => binding[name]?.value ?? null);
     const uri = fullRow[0];
     const row = fullRow.splice(1, fullRow.length);
 

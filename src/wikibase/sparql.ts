@@ -15,11 +15,11 @@ export function buildSparqlQuery(desc: SparqlQueryDesc) {
     `?item wdt:${desc.isInstanceProp} wd:${desc.parent}`,
     ...desc.properties
       .filter((prop) => prop !== "description")
-      .map((prop) => `wdt:${prop} ?${prop}`),
+      .map((prop) => `OPTIONAL { ?item wdt:${prop} ?${prop} }`),
   ];
 
   return `SELECT ${fields.join(" ")} WHERE {
-    ${statements.join("; ")} .
+    ${statements.join("\n")} .
     SERVICE wikibase:label {
       bd:serviceParam wikibase:language "en".
       ?item rdfs:label ?label .
