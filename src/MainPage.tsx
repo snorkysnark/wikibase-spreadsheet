@@ -117,7 +117,7 @@ export default function MainPage() {
                 tableSettings.tables[currentTableIndex],
                 (table) => {
                   table.fields = [
-                    { uuid: "", property: "label", name: "label" },
+                    { uuid: "label", property: "label", name: "label" },
                     ...table.fields,
                   ];
                 }

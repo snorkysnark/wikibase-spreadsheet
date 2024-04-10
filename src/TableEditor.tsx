@@ -11,8 +11,8 @@ import { HotTable } from "@handsontable/react";
 import HotTableClass from "node_modules/@handsontable/react/hotTableClass";
 
 export interface TableModifications {
-  changed: { [id: string]: any };
-  added: { label: string; [property: string]: string }[];
+  changed: any;
+  added: any[];
 }
 
 export interface TableEditorHandle {
@@ -53,11 +53,12 @@ const TableEditor = forwardRef(function TableEditor(
           });
       },
       getModifications: () => {
-        const changed: { [id: string]: any } = {};
-        const added: { label: string; [property: string]: string }[] = [];
+        const changed: any = {};
+        let added: any[] = [];
 
         const hot = hotInstance();
         if (hot) {
+          // Find changed cells
           for (const meta of hot.getCellsMeta()) {
             if (meta.row >= data.rowHeaders.length) {
               // Newly added rows begin here
@@ -73,6 +74,21 @@ const TableEditor = forwardRef(function TableEditor(
               changed[itemId][propertyId] = value;
             }
           }
+
+          // New rows
+          added = hot
+            .getData()
+            .slice(data.rowHeaders.length)
+            .map((row: any[]) =>
+              Object.fromEntries(
+                row
+                  .map((value, index) => [
+                    tableStructure.fields[index].property,
+                    value,
+                  ])
+                  .filter(([_, value]) => value !== null)
+              )
+            );
         }
         return { changed, added };
       },
