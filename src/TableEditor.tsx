@@ -2,6 +2,7 @@ import {
   ForwardedRef,
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useRef,
 } from "react";
@@ -9,18 +10,57 @@ import { TableStructure } from "./structure";
 import { TableRows } from "./tableContent";
 import { HotTable } from "@handsontable/react";
 import HotTableClass from "node_modules/@handsontable/react/hotTableClass";
+import Handsontable from "handsontable";
 
 export interface TableModifications {
   changed: any;
   added: any[];
+  deleted: string[];
 }
 
 export interface TableEditorHandle {
   addRow: () => void;
+  toggleSelectedRowDeletion: () => void;
   getModifications: () => TableModifications;
 }
 
 type CellChangeNumeric = [number, number, any, any];
+
+function getSelectedRows(hot: Handsontable): Set<number> {
+  const rows = new Set<number>();
+  const selectedRanges = hot.getSelectedRange();
+
+  if (selectedRanges) {
+    for (const range of selectedRanges) {
+      for (let row = range.from.row; row <= range.to.row; row++) rows.add(row);
+    }
+  }
+
+  return rows;
+}
+
+function setRowDeletionMetadata(
+  hot: Handsontable,
+  row: number,
+  value: boolean,
+  columnsLength: number
+) {
+  for (let col = 0; col < columnsLength; col++) {
+    if (value) {
+      const meta = hot.getCellMeta(row, col);
+      if (meta.edited) {
+        hot.setDataAtCell(row, col, meta.originalValue);
+        hot.removeCellMeta(row, col, "edited");
+      }
+
+      hot.setCellMeta(row, col, "className", "deleted");
+      hot.setCellMeta(row, col, "readOnly", true);
+    } else {
+      hot.removeCellMeta(row, col, "className");
+      hot.setCellMeta(row, col, "readOnly", false);
+    }
+  }
+}
 
 const TableEditor = forwardRef(function TableEditor(
   {
@@ -34,6 +74,23 @@ const TableEditor = forwardRef(function TableEditor(
 ) {
   const hotRef = useRef<HotTableClass | null>(null);
   const hotInstance = () => hotRef.current?.hotInstance;
+
+  const rowsForDeletion = useRef(new Set<number>());
+  useEffect(() => {
+    rowsForDeletion.current.clear();
+
+    const hot = hotInstance();
+    if (hot) {
+      hot.batchRender(() => {
+        for (const meta of hot.getCellsMeta()) {
+          hot.removeCellMeta(meta.row, meta.col, "className");
+          hot.removeCellMeta(meta.row, meta.col, "edited");
+          hot.removeCellMeta(meta.row, meta.col, "originalValue");
+          hot.removeCellMeta(meta.row, meta.col, "readOnly");
+        }
+      });
+    }
+  }, [data, tableStructure]);
 
   useImperativeHandle(ref, () => {
     return {
@@ -52,9 +109,41 @@ const TableEditor = forwardRef(function TableEditor(
             }
           });
       },
+      toggleSelectedRowDeletion: () => {
+        const hot = hotInstance();
+        if (!hot) return;
+
+        hot.batch(() => {
+          for (const row of getSelectedRows(hot)) {
+            if (row < data.rowHeaders.length) {
+              if (rowsForDeletion.current.has(row)) {
+                rowsForDeletion.current.delete(row);
+                setRowDeletionMetadata(
+                  hot,
+                  row,
+                  false,
+                  tableStructure.fields.length
+                );
+              } else {
+                rowsForDeletion.current.add(row);
+                setRowDeletionMetadata(
+                  hot,
+                  row,
+                  true,
+                  tableStructure.fields.length
+                );
+              }
+            } else {
+              hot.alter("remove_row", row);
+            }
+          }
+        });
+        hot.render();
+      },
       getModifications: () => {
         const changed: any = {};
         let added: any[] = [];
+        let deleted: string[] = [];
 
         const hot = hotInstance();
         if (hot) {
@@ -89,8 +178,12 @@ const TableEditor = forwardRef(function TableEditor(
                   .filter(([_, value]) => value !== null)
               )
             );
+
+          deleted = [...rowsForDeletion.current].map(
+            (row) => data.rowHeaders[row]
+          );
         }
-        return { changed, added };
+        return { changed, added, deleted };
       },
     };
   });
@@ -138,6 +231,7 @@ const TableEditor = forwardRef(function TableEditor(
             afterEdit(changes as CellChangeNumeric[]);
           }
         }}
+        outsideClickDeselects={false}
       />
       <button onClick={() => console.log(hotInstance()?.getCellsMeta())}>
         CellMeta

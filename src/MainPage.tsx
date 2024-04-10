@@ -8,9 +8,13 @@ import {
   Select,
   Toolbar,
 } from "@mui/material";
-import { Add as AddIcon, ArrowUpward as UploadIcon } from "@mui/icons-material";
+import {
+  Add as AddIcon,
+  Remove as RemoveIcon,
+  ArrowUpward as UploadIcon,
+} from "@mui/icons-material";
 import StructurePanel from "./structurepanel/StructurePanel";
-import { StructureSettings } from "./structure";
+import { StructureSettings, TableStructure } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
 import { TableRows, queryRows } from "./tableContent";
@@ -34,6 +38,17 @@ export default function MainPage() {
     );
     return index >= 0 ? index : null;
   }, [tableSettings, currentTableUuid]);
+
+  const tableFieldsWithLabel = useMemo<TableStructure<string> | null>(() => {
+    if (currentTableIndex === null) return null;
+
+    return produce(tableSettings.tables[currentTableIndex], (table) => {
+      table.fields = [
+        { uuid: "label", property: "label", name: "label" },
+        ...table.fields,
+      ];
+    });
+  }, [tableSettings, currentTableIndex]);
 
   const [tableContent, setTableContent] = useState<TableRows | null>(null);
   useEffect(() => {
@@ -96,6 +111,12 @@ export default function MainPage() {
             <AddIcon />
           </IconButton>
           <IconButton
+            aria-label="delete row"
+            onClick={() => hotTable.current?.toggleSelectedRowDeletion()}
+          >
+            <RemoveIcon />
+          </IconButton>
+          <IconButton
             aria-label="upload"
             onClick={() => console.log(hotTable.current?.getModifications())}
           >
@@ -109,19 +130,11 @@ export default function MainPage() {
       </AppBar>
       <div css={{ width: "100%", height: "100%", display: "flex" }}>
         <div css={{ flex: "1" }}>
-          {currentTableIndex !== null && tableContent && (
+          {tableFieldsWithLabel && tableContent && (
             <TableEditor
               ref={hotTable}
               data={tableContent}
-              tableStructure={produce(
-                tableSettings.tables[currentTableIndex],
-                (table) => {
-                  table.fields = [
-                    { uuid: "label", property: "label", name: "label" },
-                    ...table.fields,
-                  ];
-                }
-              )}
+              tableStructure={tableFieldsWithLabel}
             />
           )}
         </div>

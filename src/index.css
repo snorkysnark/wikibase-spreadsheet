@@ -1,3 +1,7 @@
 .handsontable .edited {
-    background-color: #9afa7e;
+  background-color: #9afa7e;
+}
+
+.handsontable .deleted {
+  background-color: #ffb0ad;
 }
