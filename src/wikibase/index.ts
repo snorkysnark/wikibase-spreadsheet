@@ -37,7 +37,7 @@ export class WikibaseError extends Error {
   data: ErrorData;
 
   constructor(data: ErrorData) {
-    super(data.error.info || "Unknown error");
+    super(data.error.info || data.error.code || "Unknown error");
     this.data = data;
   }
 
@@ -283,6 +283,68 @@ export async function sparqlQuery(query: string | SparqlQueryDesc) {
 
   return fetch(`${SPARQL_URL}?query=${encodeURIComponent(queryStr)}`, {
     headers: { Accept: "application/sparql-results+json" },
+  })
+    .then((response) => {
+      ResponseError.raiseForStatus(response);
+      return response.json();
+    })
+    .then((json) => {
+      WikibaseError.raiseForErrors(json);
+      return json;
+    });
+}
+
+export interface GetClaimsResult {
+  claims: { [property: string]: { id: string }[] };
+}
+
+export async function getClaims(item: string): Promise<GetClaimsResult> {
+  return fetch(
+    `${API_URL}?${new URLSearchParams({
+      action: "wbgetclaims",
+      entity: item,
+      format: "json",
+      origin: CLIENT_URL,
+    })}`,
+    {
+      credentials: "include",
+    }
+  )
+    .then((response) => {
+      ResponseError.raiseForStatus(response);
+      return response.json();
+    })
+    .then((json) => {
+      WikibaseError.raiseForErrors(json);
+      return json;
+    });
+}
+
+export async function setClaimValue(
+  guid: string,
+  property: string,
+  value: string
+) {
+  const csrfToken = await fetchCsrfToken();
+
+  return fetch(API_URL, {
+    method: "post",
+    body: new URLSearchParams({
+      action: "wbsetclaim",
+      claim: JSON.stringify({
+        id: guid,
+        type: "claim",
+        mainsnak: {
+          snaktype: "value",
+          property,
+          datavalue: { value, type: "string" },
+        },
+      }),
+      token: csrfToken,
+      origin: CLIENT_URL,
+      format: "json",
+    }),
+    credentials: "include",
   })
     .then((response) => {
       ResponseError.raiseForStatus(response);

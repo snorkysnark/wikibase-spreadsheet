@@ -17,8 +17,9 @@ import StructurePanel from "./structurepanel/StructurePanel";
 import { StructureSettings, TableStructure } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
-import { TableRows, queryRows } from "./tableContent";
+import { TableModifications, TableRows, queryRows } from "./tableContent";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
+import UploadDialog from "./UploadDialog";
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
@@ -51,6 +52,7 @@ export default function MainPage() {
   }, [tableSettings, currentTableIndex]);
 
   const [tableContent, setTableContent] = useState<TableRows | null>(null);
+  const [queryResetter, resetQuery] = useState({});
   useEffect(() => {
     if (tableSettings.isInstanceProperty && currentTableIndex !== null) {
       let valid = true;
@@ -68,132 +70,155 @@ export default function MainPage() {
     } else {
       setTableContent(null);
     }
-  }, [tableSettings, currentTableIndex]);
+  }, [tableSettings, currentTableIndex, queryResetter]);
 
   const hotTable = useRef<TableEditorHandle>(null);
+  const [tableModifications, setTableModifications] =
+    useState<TableModifications | null>(null);
 
   return (
-    <div
-      css={{
-        display: "flex",
-        height: "100vh",
-        flexDirection: "column",
-      }}
-    >
-      <AppBar
-        position="static"
-        sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          background: "lightblue",
+    <>
+      <div
+        css={{
+          display: "flex",
+          height: "100vh",
+          flexDirection: "column",
         }}
       >
-        <Toolbar variant="dense">
-          <Select
-            variant="standard"
-            value={currentTableUuid || "new-table"}
-            onChange={(event) =>
-              setCurrentTableUuid(
-                event.target.value === "new-table" ? null : event.target.value
-              )
-            }
-          >
-            <MenuItem value="new-table">New Table</MenuItem>
-            {tableSettings.tables.map((table) => (
-              <MenuItem key={table.uuid} value={table.uuid}>
-                {table.name}
-              </MenuItem>
-            ))}
-          </Select>
-          <IconButton
-            aria-label="add row"
-            onClick={() => hotTable.current?.addRow()}
-          >
-            <AddIcon />
-          </IconButton>
-          <IconButton
-            aria-label="delete row"
-            onClick={() => hotTable.current?.toggleSelectedRowDeletion()}
-          >
-            <RemoveIcon />
-          </IconButton>
-          <IconButton
-            aria-label="upload"
-            onClick={() => console.log(hotTable.current?.getModifications())}
-          >
-            <UploadIcon />
-          </IconButton>
-          <div css={{ flex: "1" }} />
-          <Button variant="contained" onClick={logout}>
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
-      <div css={{ width: "100%", height: "100%", display: "flex" }}>
-        <div css={{ flex: "1" }}>
-          {tableFieldsWithLabel && tableContent && (
-            <TableEditor
-              ref={hotTable}
-              data={tableContent}
-              tableStructure={tableFieldsWithLabel}
-            />
-          )}
-        </div>
-        <div
-          css={{
-            width: "30%",
-            borderLeft: "1px solid rgba(0, 0, 0, 0.12)",
+        <AppBar
+          position="static"
+          sx={{
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+            background: "lightblue",
           }}
         >
-          <StructurePanel
-            isInstanceProperty={tableSettings.isInstanceProperty}
-            onChangeInstanceProperty={(isInstanceProperty) =>
-              setTableSettings(
-                produce((settings) => {
-                  settings.isInstanceProperty = isInstanceProperty;
-                })
-              )
-            }
-            existing={currentTableIndex !== null}
-            tableStructure={
-              currentTableIndex !== null
-                ? tableSettings.tables[currentTableIndex]
-                : null
-            }
-            onChangeStucture={(value) => {
-              if (currentTableIndex !== null) {
-                // Existing table
-                setTableSettings(
-                  produce((settings) => {
-                    const { uuid } = settings.tables[currentTableIndex];
-                    settings.tables[currentTableIndex] = { uuid, ...value };
-                  })
-                );
-              } else {
-                // New table
-                const uuid = crypto.randomUUID();
-                setTableSettings(
-                  produce((settings) => {
-                    settings.tables.push({ uuid, ...value });
-                  })
-                );
-                setCurrentTableUuid(uuid);
+          <Toolbar variant="dense">
+            <Select
+              variant="standard"
+              value={currentTableUuid || "new-table"}
+              onChange={(event) =>
+                setCurrentTableUuid(
+                  event.target.value === "new-table" ? null : event.target.value
+                )
               }
+            >
+              <MenuItem value="new-table">New Table</MenuItem>
+              {tableSettings.tables.map((table) => (
+                <MenuItem key={table.uuid} value={table.uuid}>
+                  {table.name}
+                </MenuItem>
+              ))}
+            </Select>
+            <IconButton
+              aria-label="add row"
+              onClick={() => hotTable.current?.addRow()}
+            >
+              <AddIcon />
+            </IconButton>
+            <IconButton
+              aria-label="delete row"
+              onClick={() => hotTable.current?.toggleSelectedRowDeletion()}
+            >
+              <RemoveIcon />
+            </IconButton>
+            <IconButton
+              aria-label="upload"
+              onClick={() =>
+                setTableModifications(
+                  hotTable.current?.getModifications() || null
+                )
+              }
+            >
+              <UploadIcon />
+            </IconButton>
+            <Button onClick={() => resetQuery({})}>reload</Button>
+            <div css={{ flex: "1" }} />
+            <Button variant="contained" onClick={logout}>
+              Logout
+            </Button>
+          </Toolbar>
+        </AppBar>
+        <div css={{ width: "100%", height: "100%", display: "flex" }}>
+          <div css={{ flex: "1" }}>
+            {tableFieldsWithLabel && tableContent && (
+              <TableEditor
+                ref={hotTable}
+                data={tableContent}
+                tableStructure={tableFieldsWithLabel}
+              />
+            )}
+          </div>
+          <div
+            css={{
+              width: "30%",
+              borderLeft: "1px solid rgba(0, 0, 0, 0.12)",
             }}
-            onDelete={() => {
-              if (currentTableUuid) {
-                setCurrentTableUuid(null);
+          >
+            <StructurePanel
+              isInstanceProperty={tableSettings.isInstanceProperty}
+              onChangeInstanceProperty={(isInstanceProperty) =>
                 setTableSettings(
                   produce((settings) => {
-                    settings.tables = settings.tables.filter(
-                      (table) => table.uuid !== currentTableUuid
-                    );
+                    settings.isInstanceProperty = isInstanceProperty;
                   })
-                );
+                )
               }
-            }}
-          />
+              existing={currentTableIndex !== null}
+              tableStructure={
+                currentTableIndex !== null
+                  ? tableSettings.tables[currentTableIndex]
+                  : null
+              }
+              onChangeStucture={(value) => {
+                if (currentTableIndex !== null) {
+                  // Existing table
+                  setTableSettings(
+                    produce((settings) => {
+                      const { uuid } = settings.tables[currentTableIndex];
+                      settings.tables[currentTableIndex] = { uuid, ...value };
+                    })
+                  );
+                } else {
+                  // New table
+                  const uuid = crypto.randomUUID();
+                  setTableSettings(
+                    produce((settings) => {
+                      settings.tables.push({ uuid, ...value });
+                    })
+                  );
+                  setCurrentTableUuid(uuid);
+                }
+              }}
+              onDelete={() => {
+                if (currentTableUuid) {
+                  setCurrentTableUuid(null);
+                  setTableSettings(
+                    produce((settings) => {
+                      settings.tables = settings.tables.filter(
+                        (table) => table.uuid !== currentTableUuid
+                      );
+                    })
+                  );
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
-    </div>
+
+      {tableModifications &&
+        tableSettings.isInstanceProperty &&
+        currentTableIndex !== null && (
+          <UploadDialog
+            modifications={tableModifications}
+            isInstanceProp={tableSettings.isInstanceProperty}
+            parentId={tableSettings.tables[currentTableIndex].parentItem}
+            onFinished={() => {
+              setTableModifications(null);
+              resetQuery({});
+            }}
+          />
+        )}
+    </>
   );
 }

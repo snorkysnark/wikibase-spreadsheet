@@ -7,16 +7,10 @@ import {
   useRef,
 } from "react";
 import { TableStructure } from "./structure";
-import { TableRows } from "./tableContent";
+import { TableModifications, TableRows } from "./tableContent";
 import { HotTable } from "@handsontable/react";
 import HotTableClass from "node_modules/@handsontable/react/hotTableClass";
 import Handsontable from "handsontable";
-
-export interface TableModifications {
-  changed: any;
-  added: any[];
-  deleted: string[];
-}
 
 export interface TableEditorHandle {
   addRow: () => void;
@@ -217,26 +211,21 @@ const TableEditor = forwardRef(function TableEditor(
   }, []);
 
   return (
-    <>
-      <HotTable
-        ref={hotRef}
-        colHeaders={tableStructure.fields.map((field) => field.name)}
-        rowHeaders={(index) =>
-          index < data.rowHeaders.length ? data.rowHeaders[index] : "?"
+    <HotTable
+      ref={hotRef}
+      colHeaders={tableStructure.fields.map((field) => field.name)}
+      rowHeaders={(index) =>
+        index < data.rowHeaders.length ? data.rowHeaders[index] : "?"
+      }
+      data={data.rows}
+      licenseKey="non-commercial-and-evaluation"
+      afterChange={(changes, source) => {
+        if (source === "edit" && changes) {
+          afterEdit(changes as CellChangeNumeric[]);
         }
-        data={data.rows}
-        licenseKey="non-commercial-and-evaluation"
-        afterChange={(changes, source) => {
-          if (source === "edit" && changes) {
-            afterEdit(changes as CellChangeNumeric[]);
-          }
-        }}
-        outsideClickDeselects={false}
-      />
-      <button onClick={() => console.log(hotInstance()?.getCellsMeta())}>
-        CellMeta
-      </button>
-    </>
+      }}
+      outsideClickDeselects={false}
+    />
   );
 });
 
