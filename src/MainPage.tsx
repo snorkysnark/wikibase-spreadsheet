@@ -222,7 +222,10 @@ export default function MainPage() {
       </div>
 
       {(uploadTask.isLoading || uploadTask.isError) && (
-        <UploadDialog error={uploadTask.error} />
+        <UploadDialog
+          error={uploadTask.error}
+          onClose={() => uploadTask.reset()}
+        />
       )}
     </>
   );

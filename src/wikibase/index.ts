@@ -356,4 +356,35 @@ export async function setClaimValue(
     });
 }
 
+export async function createClaim(
+  entity: string,
+  property: string,
+  value: string
+) {
+  const csrfToken = await fetchCsrfToken();
+
+  return fetch(API_URL, {
+    method: "post",
+    body: new URLSearchParams({
+      action: "wbcreateclaim",
+      entity,
+      property,
+      snaktype: "value",
+      value: JSON.stringify(value),
+      token: csrfToken,
+      origin: CLIENT_URL,
+      format: "json",
+    }),
+    credentials: "include",
+  })
+    .then((response) => {
+      ResponseError.raiseForStatus(response);
+      return response.json();
+    })
+    .then((json) => {
+      WikibaseError.raiseForErrors(json);
+      return json;
+    });
+}
+
 export type { SparqlQueryDesc };

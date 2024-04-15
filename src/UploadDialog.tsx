@@ -6,9 +6,20 @@ import {
   DialogTitle,
 } from "@mui/material";
 
-export default function UploadDialog({ error }: { error?: Error | null }) {
+export default function UploadDialog({
+  error,
+  onClose,
+}: {
+  error?: Error | null;
+  onClose: () => void;
+}) {
   return (
-    <Dialog open={true}>
+    <Dialog
+      open={true}
+      onClose={() => {
+        if (error) onClose();
+      }}
+    >
       <DialogTitle>Uploading</DialogTitle>
       <DialogContent>
         {error ? (

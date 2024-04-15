@@ -1,5 +1,11 @@
 import { TableStructure } from "./structure";
-import { editEntity, getClaims, setClaimValue, sparqlQuery } from "./wikibase";
+import {
+  createClaim,
+  editEntity,
+  getClaims,
+  setClaimValue,
+  sparqlQuery,
+} from "./wikibase";
 
 export interface TableRows {
   rowHeaders: string[];
@@ -62,7 +68,11 @@ export async function updateChanged(
 
   const { claims } = await getClaims(itemId);
   for (const [propertyId, value] of Object.entries(changes.properties)) {
-    const claimId = claims[propertyId][0].id;
-    await setClaimValue(claimId, propertyId, value);
+    const claimId = claims[propertyId]?.[0].id;
+    if (claimId) {
+      await setClaimValue(claimId, propertyId, value);
+    } else {
+      await createClaim(itemId, propertyId, value);
+    }
   }
 }
