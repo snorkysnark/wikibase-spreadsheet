@@ -19,16 +19,17 @@ export interface TableEditorHandle {
 function addRow(hot: Handsontable) {
   hot.batch(() => {
     hot.alter("insert_row_below");
-    const numRows = hot.countRows();
+    const lastRow = hot.countRows() - 1;
     const numColumns = hot.countCols();
 
     // Set random unique label
-    hot.setDataAtCell(numRows - 1, 0, crypto.randomUUID());
+    hot.setDataAtCell(lastRow, 0, crypto.randomUUID());
 
-    hot.countRows;
     for (let i = 0; i < numColumns; i++) {
-      hot.setCellMeta(numRows - 1, i, "className", "edited");
+      hot.setCellMeta(lastRow, i, "className", "edited");
     }
+
+    hot.selectCell(lastRow, 0);
   });
 }
 
