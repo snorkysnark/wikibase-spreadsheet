@@ -331,8 +331,7 @@ export default function StructurePanel(props: {
             props.onChangeStucture({
               name: parentInfo.name,
               parentItem: parentInfo.item!,
-              // @ts-ignore
-              fields: fields,
+              fields: fields as TableField<string>[],
             })
           }
         >
