@@ -115,7 +115,10 @@ export default function MainPage() {
             >
               <AddIcon />
             </IconButton>
-            <IconButton aria-label="delete row">
+            <IconButton
+              aria-label="delete row"
+              onClick={() => hotTable.current?.toggleRowDeletion()}
+            >
               <RemoveIcon />
             </IconButton>
             <IconButton aria-label="upload">
