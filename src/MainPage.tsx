@@ -109,26 +109,13 @@ export default function MainPage() {
                 </MenuItem>
               ))}
             </Select>
-            <IconButton
-              aria-label="add row"
-              onClick={() => hotTable.current?.addRow()}
-            >
+            <IconButton aria-label="add row">
               <AddIcon />
             </IconButton>
-            <IconButton
-              aria-label="delete row"
-              onClick={() => hotTable.current?.toggleSelectedRowDeletion()}
-            >
+            <IconButton aria-label="delete row">
               <RemoveIcon />
             </IconButton>
-            <IconButton
-              aria-label="upload"
-              onClick={() =>
-                setTableModifications(
-                  hotTable.current?.getModifications() || null
-                )
-              }
-            >
+            <IconButton aria-label="upload">
               <UploadIcon />
             </IconButton>
             <Button onClick={() => resetQuery({})}>reload</Button>
