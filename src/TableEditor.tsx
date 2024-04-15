@@ -1,12 +1,13 @@
 import {
   ForwardedRef,
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
 } from "react";
 import { TableStructure } from "./structure";
-import { TableRows } from "./tableContent";
+import { ItemModifications, TableRows } from "./tableContent";
 import Handsontable from "handsontable";
 
 type CellChangeNumeric = [number, number, any, any];
@@ -14,6 +15,7 @@ type CellChangeNumeric = [number, number, any, any];
 export interface TableEditorHandle {
   addRow: () => void;
   toggleRowDeletion: () => void;
+  getModifications: () => TableModifications;
 }
 
 function addRow(hot: Handsontable) {
@@ -141,6 +143,48 @@ const TableEditor = forwardRef(function TableEditor(
     };
   }, [data, tableStructure]);
 
+  const getRowModifications = useCallback(
+    (hot: Handsontable, row: number, editedOnly: boolean) => {
+      const rowMetadata = hot.getCellMetaAtRow(row);
+
+      const changes: ItemModifications = { properties: {} };
+      for (const meta of rowMetadata) {
+        if (editedOnly && !meta.edited) continue;
+
+        const value = hot.getDataAtCell(meta.row, meta.col);
+
+        if (meta.col === 0) {
+          changes.label = value;
+        } else {
+          const propertyId = tableStructure.fields[meta.col].property;
+          changes.properties[propertyId] = value;
+        }
+      }
+
+      return changes;
+    },
+    [data, tableStructure]
+  );
+
+  const addCellToModifications = useCallback(
+    (
+      hot: Handsontable,
+      row: number,
+      col: number,
+      modifications: ItemModifications
+    ) => {
+      const value = hot.getDataAtCell(row, col);
+
+      if (col === 0) {
+        modifications.label = value;
+      } else {
+        const propertyId = tableStructure.fields[col].property;
+        modifications.properties[propertyId] = value;
+      }
+    },
+    [tableStructure]
+  );
+
   useImperativeHandle(ref, () => ({
     addRow: () => {
       if (hotRef.current) addRow(hotRef.current);
@@ -168,6 +212,39 @@ const TableEditor = forwardRef(function TableEditor(
       });
 
       hot.render();
+    },
+    getModifications: () => {
+      const hot = hotRef.current;
+      if (!hot) return { changed: {}, added: [], deleted: [] };
+
+      const changed: { [id: string]: ItemModifications } = {};
+      for (let row = 0; row < data.rowHeaders.length; row++) {
+        const itemId = data.rowHeaders[row];
+
+        hot.getCellMetaAtRow(row).forEach((meta, col) => {
+          if (meta.edited) {
+            if (!changed[itemId]) changed[itemId] = { properties: {} };
+            addCellToModifications(hot, row, col, changed[itemId]);
+          }
+        });
+      }
+
+      const rowCount = hot.countRows();
+      const added: ItemModifications[] = [];
+      for (let row = data.rowHeaders.length; row < rowCount; row++) {
+        const newRow: ItemModifications = { properties: {} };
+        hot.getDataAtRow(row).forEach((value, col) => {
+          if (value) addCellToModifications(hot, row, col, newRow);
+        });
+
+        added.push(newRow);
+      }
+
+      const deleted = [...rowsForDeletion.current].map(
+        (row) => data.rowHeaders[row]
+      );
+
+      return { changed, added, deleted };
     },
   }));
 

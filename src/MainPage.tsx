@@ -73,8 +73,6 @@ export default function MainPage() {
   }, [tableSettings, currentTableIndex, queryResetter]);
 
   const hotTable = useRef<TableEditorHandle>(null);
-  const [tableModifications, setTableModifications] =
-    useState<TableModifications | null>(null);
 
   return (
     <>
@@ -121,7 +119,10 @@ export default function MainPage() {
             >
               <RemoveIcon />
             </IconButton>
-            <IconButton aria-label="upload">
+            <IconButton
+              aria-label="upload"
+              onClick={() => console.log(hotTable.current?.getModifications())}
+            >
               <UploadIcon />
             </IconButton>
             <Button onClick={() => resetQuery({})}>reload</Button>
@@ -198,20 +199,6 @@ export default function MainPage() {
           </div>
         </div>
       </div>
-
-      {tableModifications &&
-        tableSettings.isInstanceProperty &&
-        currentTableIndex !== null && (
-          <UploadDialog
-            modifications={tableModifications}
-            isInstanceProp={tableSettings.isInstanceProperty}
-            parentId={tableSettings.tables[currentTableIndex].parentItem}
-            onFinished={() => {
-              setTableModifications(null);
-              resetQuery({});
-            }}
-          />
-        )}
     </>
   );
 }
