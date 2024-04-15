@@ -14,7 +14,7 @@ export function useList<T>(initialState: T[]): [
     updateAt: (index: number, value: T) => void;
     removeAt: (index: number) => void;
     push: (value: T) => void;
-    swap: (index1: number, index2: number) => void;
+    move: (index1: number, index2: number) => void;
   }
 ] {
   const [state, setState] = useState<T[]>(initialState);
@@ -38,12 +38,12 @@ export function useList<T>(initialState: T[]): [
     setState((state) => [...state, value]);
   }, []);
 
-  const swap = useCallback((index1: number, index2: number) => {
+  const move = useCallback((index1: number, index2: number) => {
     setState(
       produce((draft) => {
-        const tmp = draft[index2];
-        draft[index2] = draft[index1];
-        draft[index1] = tmp;
+        const element = draft[index1];
+        draft.splice(index1, 1);
+        draft.splice(index2, 0, element);
       })
     );
   }, []);
@@ -55,7 +55,7 @@ export function useList<T>(initialState: T[]): [
       updateAt,
       removeAt,
       push,
-      swap,
+      move,
     },
   ];
 }

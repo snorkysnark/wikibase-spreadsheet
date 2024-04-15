@@ -5,11 +5,11 @@ import { SortableContext } from "@dnd-kit/sortable";
 
 export default function SortableList({
   ids,
-  onSwap,
+  onMove,
   children,
 }: {
   ids: UniqueIdentifier[];
-  onSwap: (index1: number, index2: number) => void;
+  onMove: (index1: number, index2: number) => void;
   children: ReactNode;
 }) {
   return (
@@ -18,7 +18,7 @@ export default function SortableList({
       modifiers={[restrictToVerticalAxis]}
       onDragEnd={(event) => {
         if (event.active.data.current && event.over?.data.current) {
-          onSwap(
+          onMove(
             event.active.data.current.sortable.index,
             event.over.data.current.sortable.index
           );

@@ -243,7 +243,7 @@ export default function StructurePanel(props: {
         <Divider sx={{ marginY: "0.5em" }} />
         <SortableList
           ids={fields.map((field) => field.uuid)}
-          onSwap={fieldsControl.swap}
+          onMove={fieldsControl.move}
         >
           {fields.map((field, i) => (
             <EditTableField
