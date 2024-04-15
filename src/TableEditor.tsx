@@ -9,7 +9,25 @@ import { TableStructure } from "./structure";
 import { TableRows } from "./tableContent";
 import Handsontable from "handsontable";
 
-export interface TableEditorHandle {}
+export interface TableEditorHandle {
+  addRow: () => void;
+}
+
+function addRow(hot: Handsontable) {
+  hot.batch(() => {
+    hot.alter("insert_row_below");
+    const numRows = hot.countRows();
+    const numColumns = hot.countCols();
+
+    // Set random unique label
+    hot.setDataAtCell(numRows - 1, 0, crypto.randomUUID());
+
+    hot.countRows;
+    for (let i = 0; i < numColumns; i++) {
+      hot.setCellMeta(numRows - 1, i, "className", "edited");
+    }
+  });
+}
 
 const TableEditor = forwardRef(function TableEditor(
   {
@@ -22,10 +40,10 @@ const TableEditor = forwardRef(function TableEditor(
   ref: ForwardedRef<TableEditorHandle>
 ) {
   const container = useRef<HTMLDivElement | null>(null);
-  const hot = useRef<Handsontable | null>(null);
+  const hotRef = useRef<Handsontable | null>(null);
 
   useEffect(() => {
-    hot.current = new Handsontable(container.current!, {
+    hotRef.current = new Handsontable(container.current!, {
       colHeaders: tableStructure.fields.map((field) => field.name),
       rowHeaders: (index) =>
         index < data.rowHeaders.length ? data.rowHeaders[index] : "?",
@@ -34,11 +52,15 @@ const TableEditor = forwardRef(function TableEditor(
     });
 
     return () => {
-      hot.current!.destroy();
+      hotRef.current!.destroy();
     };
   }, [data, tableStructure]);
 
-  useImperativeHandle(ref, () => ({}));
+  useImperativeHandle(ref, () => ({
+    addRow: () => {
+      if (hotRef.current) addRow(hotRef.current);
+    },
+  }));
 
   return <div ref={container}></div>;
 });

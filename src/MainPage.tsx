@@ -109,7 +109,10 @@ export default function MainPage() {
                 </MenuItem>
               ))}
             </Select>
-            <IconButton aria-label="add row">
+            <IconButton
+              aria-label="add row"
+              onClick={() => hotTable.current?.addRow()}
+            >
               <AddIcon />
             </IconButton>
             <IconButton aria-label="delete row">
