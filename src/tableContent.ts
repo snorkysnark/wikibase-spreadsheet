@@ -1,5 +1,5 @@
 import { TableStructure } from "./structure";
-import { sparqlQuery } from "./wikibase";
+import { editEntity, getClaims, setClaimValue, sparqlQuery } from "./wikibase";
 
 export interface TableRows {
   rowHeaders: string[];
@@ -47,4 +47,22 @@ export interface TableModifications {
 export interface ItemModifications {
   label?: string;
   properties: { [id: string]: string };
+}
+
+export async function updateChanged(
+  itemId: string,
+  changes: ItemModifications
+) {
+  if (changes.label !== undefined) {
+    await editEntity({
+      id: itemId,
+      data: { labels: { en: { language: "en", value: changes.label } } },
+    });
+  }
+
+  const { claims } = await getClaims(itemId);
+  for (const [propertyId, value] of Object.entries(changes.properties)) {
+    const claimId = claims[propertyId][0].id;
+    await setClaimValue(claimId, propertyId, value);
+  }
 }
