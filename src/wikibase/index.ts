@@ -99,18 +99,8 @@ async function fetchCsrfToken(): Promise<string> {
     });
 }
 
-export async function assertLogin() {
-  return fetch(
-    `${API_URL}?${new URLSearchParams({
-      action: "query",
-      assert: "user",
-      format: "json",
-      origin: CLIENT_URL,
-    })}`,
-    {
-      credentials: "include",
-    }
-  )
+async function handleErrors(promise: Promise<Response>): Promise<any> {
+  return promise
     .then((response) => {
       ResponseError.raiseForStatus(response);
       return response.json();
@@ -119,6 +109,22 @@ export async function assertLogin() {
       WikibaseError.raiseForErrors(json);
       return json;
     });
+}
+
+export async function assertLogin() {
+  return handleErrors(
+    fetch(
+      `${API_URL}?${new URLSearchParams({
+        action: "query",
+        assert: "user",
+        format: "json",
+        origin: CLIENT_URL,
+      })}`,
+      {
+        credentials: "include",
+      }
+    )
+  );
 }
 
 export interface LoginParams {
@@ -136,50 +142,38 @@ export interface LoginReturnType {
 export async function login(params: LoginParams): Promise<LoginReturnType> {
   const loginToken = await fetchLoginToken();
 
-  return fetch(API_URL, {
-    method: "POST",
-    body: new URLSearchParams({
-      action: "clientlogin",
-      logintoken: loginToken,
-      origin: CLIENT_URL,
-      loginreturnurl: CLIENT_URL,
-      username: params.username,
-      password: params.password,
-      ...(params.rememberMe && { rememberMe: "1" }),
-      format: "json",
-    }),
-    credentials: "include",
-  })
-    .then((response) => {
-      ResponseError.raiseForStatus(response);
-      return response.json();
+  return handleErrors(
+    fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "clientlogin",
+        logintoken: loginToken,
+        origin: CLIENT_URL,
+        loginreturnurl: CLIENT_URL,
+        username: params.username,
+        password: params.password,
+        ...(params.rememberMe && { rememberMe: "1" }),
+        format: "json",
+      }),
+      credentials: "include",
     })
-    .then((json) => {
-      WikibaseError.raiseForErrors(json);
-      return json;
-    });
+  );
 }
 
 export async function logout() {
   const csrfToken = await fetchCsrfToken();
-  return fetch(API_URL, {
-    method: "POST",
-    body: new URLSearchParams({
-      action: "logout",
-      token: csrfToken,
-      format: "json",
-      origin: CLIENT_URL,
-    }),
-    credentials: "include",
-  })
-    .then((response) => {
-      ResponseError.raiseForStatus(response);
-      return response.json();
+  return handleErrors(
+    fetch(API_URL, {
+      method: "POST",
+      body: new URLSearchParams({
+        action: "logout",
+        token: csrfToken,
+        format: "json",
+        origin: CLIENT_URL,
+      }),
+      credentials: "include",
     })
-    .then((json) => {
-      WikibaseError.raiseForErrors(json);
-      return json;
-    });
+  );
 }
 
 export type EntityType = "form" | "item" | "lexeme" | "property" | "sense";
@@ -196,26 +190,20 @@ export interface SearchEntitiesParams {
 export async function searchEntities(
   params: SearchEntitiesParams
 ): Promise<any> {
-  return fetch(
-    `${API_URL}?${new URLSearchParams({
-      ...params,
-      action: "wbsearchentities",
-      language: params.language || "en",
-      format: "json",
-      origin: CLIENT_URL,
-    })}`,
-    {
-      credentials: "include",
-    }
-  )
-    .then((response) => {
-      ResponseError.raiseForStatus(response);
-      return response.json();
-    })
-    .then((json) => {
-      WikibaseError.raiseForErrors(json);
-      return json;
-    });
+  return handleErrors(
+    fetch(
+      `${API_URL}?${new URLSearchParams({
+        ...params,
+        action: "wbsearchentities",
+        language: params.language || "en",
+        format: "json",
+        origin: CLIENT_URL,
+      })}`,
+      {
+        credentials: "include",
+      }
+    )
+  );
 }
 
 export interface EditEntityParams {
@@ -251,27 +239,21 @@ export async function editEntity(
   params: EditEntityParams
 ): Promise<EditEntityData> {
   const csrfToken = await fetchCsrfToken();
-  return fetch(API_URL, {
-    method: "post",
-    body: new URLSearchParams({
-      action: "wbeditentity",
-      token: csrfToken,
-      format: "json",
-      origin: CLIENT_URL,
-      ...(params.id && { id: params.id }),
-      ...(params.new && { new: params.new }),
-      data: JSON.stringify(params.data),
-    }),
-    credentials: "include",
-  })
-    .then((response) => {
-      ResponseError.raiseForStatus(response);
-      return response.json();
+  return handleErrors(
+    fetch(API_URL, {
+      method: "post",
+      body: new URLSearchParams({
+        action: "wbeditentity",
+        token: csrfToken,
+        format: "json",
+        origin: CLIENT_URL,
+        ...(params.id && { id: params.id }),
+        ...(params.new && { new: params.new }),
+        data: JSON.stringify(params.data),
+      }),
+      credentials: "include",
     })
-    .then((json) => {
-      WikibaseError.raiseForErrors(json);
-      return json;
-    });
+  );
 }
 
 export function getItemUrl(type: EntityType, id: string) {
@@ -281,17 +263,11 @@ export function getItemUrl(type: EntityType, id: string) {
 export async function sparqlQuery(query: string | SparqlQueryDesc) {
   const queryStr = typeof query === "string" ? query : buildSparqlQuery(query);
 
-  return fetch(`${SPARQL_URL}?query=${encodeURIComponent(queryStr)}`, {
-    headers: { Accept: "application/sparql-results+json" },
-  })
-    .then((response) => {
-      ResponseError.raiseForStatus(response);
-      return response.json();
+  return handleErrors(
+    fetch(`${SPARQL_URL}?query=${encodeURIComponent(queryStr)}`, {
+      headers: { Accept: "application/sparql-results+json" },
     })
-    .then((json) => {
-      WikibaseError.raiseForErrors(json);
-      return json;
-    });
+  );
 }
 
 export interface GetClaimsResult {
@@ -299,25 +275,19 @@ export interface GetClaimsResult {
 }
 
 export async function getClaims(item: string): Promise<GetClaimsResult> {
-  return fetch(
-    `${API_URL}?${new URLSearchParams({
-      action: "wbgetclaims",
-      entity: item,
-      format: "json",
-      origin: CLIENT_URL,
-    })}`,
-    {
-      credentials: "include",
-    }
-  )
-    .then((response) => {
-      ResponseError.raiseForStatus(response);
-      return response.json();
-    })
-    .then((json) => {
-      WikibaseError.raiseForErrors(json);
-      return json;
-    });
+  return handleErrors(
+    fetch(
+      `${API_URL}?${new URLSearchParams({
+        action: "wbgetclaims",
+        entity: item,
+        format: "json",
+        origin: CLIENT_URL,
+      })}`,
+      {
+        credentials: "include",
+      }
+    )
+  );
 }
 
 export async function setClaimValue(
@@ -327,33 +297,27 @@ export async function setClaimValue(
 ) {
   const csrfToken = await fetchCsrfToken();
 
-  return fetch(API_URL, {
-    method: "post",
-    body: new URLSearchParams({
-      action: "wbsetclaim",
-      claim: JSON.stringify({
-        id: guid,
-        type: "claim",
-        mainsnak: {
-          snaktype: "value",
-          property,
-          datavalue: { value, type: "string" },
-        },
+  return handleErrors(
+    fetch(API_URL, {
+      method: "post",
+      body: new URLSearchParams({
+        action: "wbsetclaim",
+        claim: JSON.stringify({
+          id: guid,
+          type: "claim",
+          mainsnak: {
+            snaktype: "value",
+            property,
+            datavalue: { value, type: "string" },
+          },
+        }),
+        token: csrfToken,
+        origin: CLIENT_URL,
+        format: "json",
       }),
-      token: csrfToken,
-      origin: CLIENT_URL,
-      format: "json",
-    }),
-    credentials: "include",
-  })
-    .then((response) => {
-      ResponseError.raiseForStatus(response);
-      return response.json();
+      credentials: "include",
     })
-    .then((json) => {
-      WikibaseError.raiseForErrors(json);
-      return json;
-    });
+  );
 }
 
 export async function createClaim(
@@ -363,28 +327,40 @@ export async function createClaim(
 ) {
   const csrfToken = await fetchCsrfToken();
 
-  return fetch(API_URL, {
-    method: "post",
-    body: new URLSearchParams({
-      action: "wbcreateclaim",
-      entity,
-      property,
-      snaktype: "value",
-      value: JSON.stringify(value),
-      token: csrfToken,
-      origin: CLIENT_URL,
-      format: "json",
-    }),
-    credentials: "include",
-  })
-    .then((response) => {
-      ResponseError.raiseForStatus(response);
-      return response.json();
+  return handleErrors(
+    fetch(API_URL, {
+      method: "post",
+      body: new URLSearchParams({
+        action: "wbcreateclaim",
+        entity,
+        property,
+        snaktype: "value",
+        value: JSON.stringify(value),
+        token: csrfToken,
+        origin: CLIENT_URL,
+        format: "json",
+      }),
+      credentials: "include",
     })
-    .then((json) => {
-      WikibaseError.raiseForErrors(json);
-      return json;
-    });
+  );
+}
+
+export async function deleteItem(itemId: string) {
+  const csrfToken = await fetchCsrfToken();
+
+  return handleErrors(
+    fetch(API_URL, {
+      method: "post",
+      body: new URLSearchParams({
+        action: "delete",
+        title: `Item:${itemId}`,
+        token: csrfToken,
+        origin: CLIENT_URL,
+        format: "json",
+      }),
+      credentials: "include",
+    })
+  );
 }
 
 export type { SparqlQueryDesc };

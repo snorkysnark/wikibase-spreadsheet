@@ -22,15 +22,28 @@ import {
   TableRows,
   queryRows,
   updateChanged,
+  uploadNewItem,
 } from "./tableContent";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
 import UploadDialog from "./UploadDialog";
 import { useMutation } from "react-query";
+import { deleteItem } from "./wikibase";
 
-async function upload(modifications: TableModifications) {
-  console.log("Uploading");
+async function upload(
+  modifications: TableModifications,
+  isInstanceProp: string,
+  parentItem: string
+) {
   for (const [itemId, changes] of Object.entries(modifications.changed)) {
     await updateChanged(itemId, changes);
+  }
+
+  for (const item of modifications.added) {
+    await uploadNewItem(item, isInstanceProp, parentItem);
+  }
+
+  for (const itemId of modifications.deleted) {
+    await deleteItem(itemId);
   }
 }
 
@@ -86,8 +99,17 @@ export default function MainPage() {
   }, [tableSettings, currentTableIndex, queryResetter]);
 
   const hotTable = useRef<TableEditorHandle>(null);
-  const uploadTask = useMutation<void, Error, TableModifications>(
-    (modifications) => upload(modifications),
+  const uploadTask = useMutation<
+    void,
+    Error,
+    {
+      modifications: TableModifications;
+      isInstanceProp: string;
+      parentItem: string;
+    }
+  >(
+    ({ modifications, isInstanceProp, parentItem }) =>
+      upload(modifications, isInstanceProp, parentItem),
     { onSuccess: () => resetQuery({}) }
   );
 
@@ -139,8 +161,17 @@ export default function MainPage() {
             <IconButton
               aria-label="upload"
               onClick={() => {
-                if (hotTable.current) {
-                  uploadTask.mutate(hotTable.current.getModifications());
+                if (
+                  hotTable.current &&
+                  tableSettings.isInstanceProperty &&
+                  currentTableIndex !== null
+                ) {
+                  uploadTask.mutate({
+                    modifications: hotTable.current.getModifications(),
+                    isInstanceProp: tableSettings.isInstanceProperty,
+                    parentItem:
+                      tableSettings.tables[currentTableIndex].parentItem,
+                  });
                 }
               }}
             >

@@ -76,3 +76,46 @@ export async function updateChanged(
     }
   }
 }
+
+export async function uploadNewItem(
+  item: ItemModifications,
+  isInstanceProp: string,
+  parentItem: string
+) {
+  const entityData: any = {};
+
+  if (item.label !== undefined) {
+    entityData.labels = { en: { language: "en", value: item.label } };
+  }
+
+  const claims: any = Object.entries(item.properties).map(
+    ([property, value]) => ({
+      mainsnak: {
+        snaktype: "value",
+        property,
+        datavalue: { value, type: "string" },
+      },
+      type: "statement",
+      rank: "normal",
+    })
+  );
+  claims.push({
+    mainsnak: {
+      snaktype: "value",
+      property: isInstanceProp,
+      datavalue: {
+        value: {
+          "entity-type": "item",
+          "numeric-id": +/(\d+)$/.exec(parentItem)![1],
+        },
+        type: "wikibase-entityid",
+      },
+    },
+    type: "statement",
+    rank: "normal",
+  });
+
+  entityData.claims = claims;
+
+  await editEntity({ new: "item", data: entityData });
+}
