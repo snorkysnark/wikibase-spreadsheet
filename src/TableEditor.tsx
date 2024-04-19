@@ -7,7 +7,11 @@ import {
   useRef,
 } from "react";
 import { TableStructure } from "./structure";
-import { ItemModifications, TableRows } from "./tableContent";
+import {
+  ItemModifications,
+  TableModifications,
+  TableRows,
+} from "./tableContent";
 import Handsontable from "handsontable";
 
 type CellChangeNumeric = [number, number, any, any];
@@ -120,6 +124,7 @@ const TableEditor = forwardRef(function TableEditor(
       rowHeaders: (index) =>
         index < data.rowHeaders.length ? data.rowHeaders[index] : "?",
       data: data.rows,
+      columns: new Array(tableStructure.fields.length).fill({}),
       outsideClickDeselects: false,
       licenseKey: "non-commercial-and-evaluation",
     });
@@ -142,29 +147,6 @@ const TableEditor = forwardRef(function TableEditor(
       rowsForDeletion.current.clear();
     };
   }, [data, tableStructure]);
-
-  const getRowModifications = useCallback(
-    (hot: Handsontable, row: number, editedOnly: boolean) => {
-      const rowMetadata = hot.getCellMetaAtRow(row);
-
-      const changes: ItemModifications = { properties: {} };
-      for (const meta of rowMetadata) {
-        if (editedOnly && !meta.edited) continue;
-
-        const value = hot.getDataAtCell(meta.row, meta.col);
-
-        if (meta.col === 0) {
-          changes.label = value;
-        } else {
-          const propertyId = tableStructure.fields[meta.col].property;
-          changes.properties[propertyId] = value;
-        }
-      }
-
-      return changes;
-    },
-    [data, tableStructure]
-  );
 
   const addCellToModifications = useCallback(
     (
