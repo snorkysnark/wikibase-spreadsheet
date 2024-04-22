@@ -79,8 +79,9 @@ export default function MainPage() {
 
   const hotRef = useRef<TableEditorHandle | null>(null);
   const [taskDescription, setTaskDescription] = useState<string | null>(null);
-  const tasks = useMutation<void, Error, UploadTask[]>((tasks: UploadTask[]) =>
-    runTasks(tasks, setTaskDescription)
+  const tasks = useMutation<void, Error, UploadTask[]>(
+    (tasks: UploadTask[]) => runTasks(tasks, setTaskDescription),
+    { onSettled: () => resetQuery({}) }
   );
 
   return (
