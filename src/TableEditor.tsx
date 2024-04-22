@@ -9,6 +9,7 @@ import { TableStructure } from "./structure";
 import Handsontable from "handsontable";
 import { SparqlTable } from "./wikibase/sparql";
 import { CellChange } from "node_modules/handsontable/common";
+import { UploadTask } from "./uploadTasks";
 
 export interface TableEditorHandle {
   addRow: () => void;
@@ -112,6 +113,7 @@ const TableEditor = forwardRef(function TableEditor(
   const container = useRef<HTMLDivElement | null>(null);
   const hotRef = useRef<Handsontable | null>(null);
   const rowsForDeletion = useRef(new Set<number>());
+  const existingRows = useRef<number>(0);
 
   useEffect(() => {
     const hot = new Handsontable(container.current!, {
@@ -120,7 +122,7 @@ const TableEditor = forwardRef(function TableEditor(
         ...tableStructure.fields.map((field) => field.name),
       ],
       rowHeaders: (index) =>
-        index < data.rows.length ? data.rows[index].item : "?",
+        index < existingRows.current ? data.rows[index].item : "?",
       data: data.rows,
       dataSchema: {
         item: null,
@@ -144,12 +146,13 @@ const TableEditor = forwardRef(function TableEditor(
     hot.updateSettings({
       afterChange: (changes, source) => {
         if (source === "edit" && changes) {
-          afterEdit(hot, changes, data.rows.length);
+          afterEdit(hot, changes, existingRows.current);
         }
       },
     });
 
     hotRef.current = hot;
+    existingRows.current = data.rows.length;
 
     return () => {
       hotRef.current!.destroy();
@@ -167,7 +170,7 @@ const TableEditor = forwardRef(function TableEditor(
 
       hot.batch(() => {
         for (const row of getSelectedRows(hot)) {
-          if (row < data.rows.length) {
+          if (row < existingRows.current) {
             // Existing row, mark to delete later
             if (rowsForDeletion.current.has(row)) {
               rowsForDeletion.current.delete(row);

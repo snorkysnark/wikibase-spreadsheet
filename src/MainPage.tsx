@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { LoginContext } from "./Login";
 import {
   AppBar,
@@ -18,7 +18,7 @@ import { StructureSettings } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
 import { SparqlTable, itemSparqlQuery } from "./wikibase/sparql";
-import TableEditor from "./TableEditor";
+import TableEditor, { TableEditorHandle } from "./TableEditor";
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
@@ -63,6 +63,8 @@ export default function MainPage() {
     }
   }, [tableSettings, currentTableIndex, queryResetter]);
 
+  const hotRef = useRef<TableEditorHandle | null>(null);
+
   return (
     <>
       <div
@@ -96,10 +98,16 @@ export default function MainPage() {
                 </MenuItem>
               ))}
             </Select>
-            <IconButton aria-label="add row">
+            <IconButton
+              aria-label="add row"
+              onClick={() => hotRef.current?.addRow()}
+            >
               <AddIcon />
             </IconButton>
-            <IconButton aria-label="delete row">
+            <IconButton
+              aria-label="delete row"
+              onClick={() => hotRef.current?.toggleRowDeletion()}
+            >
               <RemoveIcon />
             </IconButton>
             <IconButton aria-label="upload">
@@ -116,6 +124,7 @@ export default function MainPage() {
           <div css={{ flex: "1" }}>
             {currentTableIndex !== null && tableContent && (
               <TableEditor
+                ref={hotRef}
                 data={tableContent}
                 tableStructure={tableSettings.tables[currentTableIndex]}
               />
