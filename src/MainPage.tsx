@@ -19,6 +19,20 @@ import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
 import { SparqlTable, itemSparqlQuery } from "./wikibase/sparql";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
+import { UploadTask } from "./uploadTasks";
+import { useMutation } from "react-query";
+import UploadDialog from "./UploadDialog";
+
+async function runTasks(
+  tasks: UploadTask[],
+  setDescription: (value: string | null) => void
+) {
+  for (const task of tasks) {
+    setDescription(task.description);
+    await task.run();
+  }
+  setDescription(null);
+}
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
@@ -64,6 +78,10 @@ export default function MainPage() {
   }, [tableSettings, currentTableIndex, queryResetter]);
 
   const hotRef = useRef<TableEditorHandle | null>(null);
+  const [taskDescription, setTaskDescription] = useState<string | null>(null);
+  const tasks = useMutation<void, Error, UploadTask[]>((tasks: UploadTask[]) =>
+    runTasks(tasks, setTaskDescription)
+  );
 
   return (
     <>
@@ -110,7 +128,14 @@ export default function MainPage() {
             >
               <RemoveIcon />
             </IconButton>
-            <IconButton aria-label="upload">
+            <IconButton
+              aria-label="upload"
+              onClick={() => {
+                if (hotRef.current) {
+                  tasks.mutate(hotRef.current.getModifications());
+                }
+              }}
+            >
               <UploadIcon />
             </IconButton>
             <Button onClick={() => resetQuery({})}>reload</Button>
@@ -187,6 +212,19 @@ export default function MainPage() {
           </div>
         </div>
       </div>
+
+      {taskDescription && (
+        <UploadDialog
+          description={taskDescription}
+          error={tasks.error}
+          onClose={() => {
+            if (tasks.isError) {
+              tasks.reset();
+              setTaskDescription(null);
+            }
+          }}
+        />
+      )}
     </>
   );
 }

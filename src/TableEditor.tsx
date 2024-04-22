@@ -9,11 +9,17 @@ import { TableStructure } from "./structure";
 import Handsontable from "handsontable";
 import { SparqlTable } from "./wikibase/sparql";
 import { CellChange } from "node_modules/handsontable/common";
-import { UploadTask } from "./uploadTasks";
+import {
+  ItemChanges,
+  PropertyChanges,
+  UpdateTask,
+  UploadTask,
+} from "./uploadTasks";
 
 export interface TableEditorHandle {
   addRow: () => void;
   toggleRowDeletion: () => void;
+  getModifications: () => UploadTask[];
 }
 
 function addRow(hot: Handsontable) {
@@ -187,6 +193,60 @@ const TableEditor = forwardRef(function TableEditor(
       });
 
       hot.render();
+    },
+    getModifications: () => {
+      const modifications: UploadTask[] = [];
+
+      const hot = hotRef.current;
+      if (hot) {
+        const changedItems = new Map<
+          string,
+          { label?: string; properties: Map<string, PropertyChanges> }
+        >();
+
+        for (let row = 0; row < existingRows.current; row++) {
+          for (const meta of hot.getCellMetaAtRow(row)) {
+            if (!meta.edited) continue;
+
+            const value = hot.getDataAtCell(meta.row, meta.col);
+            const itemId = data.rows[row].item;
+            const propParts = (meta.prop as string).split(".");
+
+            if (!changedItems.has(itemId))
+              changedItems.set(itemId, { properties: new Map() });
+            const changes = changedItems.get(itemId)!;
+
+            switch (propParts[0]) {
+              case "label":
+                changes.label = value;
+                break;
+              case "properties":
+                const property = propParts[1];
+                const guid = hot.getDataAtRowProp(
+                  row,
+                  [...propParts.slice(0, propParts.length - 1), "guid"].join(
+                    "."
+                  )
+                );
+                changes.properties.set(`${guid}-${property}`, {
+                  guid,
+                  property,
+                  value,
+                });
+            }
+          }
+        }
+
+        for (const [itemId, { label, properties }] of changedItems.entries()) {
+          modifications.push(
+            new UpdateTask(itemId, {
+              label,
+              properties: [...properties.values()],
+            })
+          );
+        }
+      }
+      return modifications;
     },
   }));
 
