@@ -19,12 +19,12 @@ import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
 import { SparqlTable, itemSparqlQuery } from "./wikibase/sparql";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
-import { UploadTask } from "./uploadTasks";
+import { NamedTask } from "./uploadTasks";
 import { useMutation } from "react-query";
 import UploadDialog from "./UploadDialog";
 
 async function runTasks(
-  tasks: UploadTask[],
+  tasks: NamedTask[],
   setDescription: (value: string | null) => void
 ) {
   for (const task of tasks) {
@@ -79,8 +79,8 @@ export default function MainPage() {
 
   const hotRef = useRef<TableEditorHandle | null>(null);
   const [taskDescription, setTaskDescription] = useState<string | null>(null);
-  const tasks = useMutation<void, Error, UploadTask[]>(
-    (tasks: UploadTask[]) => runTasks(tasks, setTaskDescription),
+  const tasks = useMutation<void, Error, NamedTask[]>(
+    (tasks: NamedTask[]) => runTasks(tasks, setTaskDescription),
     { onSettled: () => resetQuery({}) }
   );
 

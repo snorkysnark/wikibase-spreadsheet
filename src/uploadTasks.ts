@@ -1,7 +1,12 @@
 import { editEntity } from "./wikibase";
 
-export abstract class UploadTask {
-  abstract get description(): string;
+export abstract class NamedTask {
+  description: string;
+
+  constructor(description: string) {
+    this.description = description;
+  }
+
   abstract run(): Promise<void>;
 }
 
@@ -16,29 +21,26 @@ export interface ItemChanges {
   properties: PropertyChanges[];
 }
 
-function normalieGuid(guid: string): string {
+function prepareGuid(guid: string): string {
   // Sparql query returns itemid-XXXX-XXXX, wbeditentity expects itemid$XXXX-XXXX
   return guid.includes("$") ? guid : guid.replace("-", "$");
 }
 
-export class UpdateTask extends UploadTask {
+export class UpdateTask extends NamedTask {
   itemId: string;
   changes: ItemChanges;
 
   constructor(itemId: string, changes: ItemChanges) {
-    super();
+    super(`Updating ${itemId}`);
     this.itemId = itemId;
     this.changes = changes;
   }
 
-  get description(): string {
-    return `Updating ${this.itemId}`;
-  }
   async run(): Promise<void> {
     const claims: any[] = [];
     for (const { guid, property, value } of this.changes.properties) {
       claims.push({
-        ...(guid && { id: normalieGuid(guid) }),
+        ...(guid && { id: prepareGuid(guid) }),
         mainsnak: {
           snaktype: "value",
           property,
