@@ -1,114 +1,44 @@
-import { SparqlQueryDesc, buildSparqlQuery } from "./sparql";
+import { handleErrors } from "./errors";
 
 const BASE_URL = "http://localhost:8030";
 const WIKI_URL = BASE_URL + "/wiki";
 const API_URL = BASE_URL + "/api.php";
-const SPARQL_URL =
-  "http://localhost:8834/proxy/wdqs/bigdata/namespace/wdq/sparql";
 
 const CLIENT_URL = "http://localhost:5173";
 
-export class ResponseError extends Error {
-  response: Response;
-
-  constructor(response: Response) {
-    super(`Bad response: ${response.status}`);
-    this.response = response;
-  }
-
-  static raiseForStatus(response: Response) {
-    if (!response.ok) throw new ResponseError(response);
-  }
-}
-
-export interface ErrorData {
-  error: {
-    code: string;
-    info: string;
-    messages?: {
-      name: string;
-      parameters: string[];
-      html: { ["*"]: string };
-    }[];
-  };
-}
-
-export class WikibaseError extends Error {
-  data: ErrorData;
-
-  constructor(data: ErrorData) {
-    super(data.error.info || data.error.code || "Unknown error");
-    this.data = data;
-  }
-
-  public get messages(): string[] {
-    return [
-      ...(this.data.error.messages?.map((message) => message.html["*"]) || []),
-    ];
-  }
-
-  static raiseForErrors(data: any) {
-    if ("error" in data) throw new WikibaseError(data);
-  }
-}
-
 export async function fetchLoginToken(): Promise<string> {
-  return fetch(
-    `${API_URL}?${new URLSearchParams({
-      action: "query",
-      meta: "tokens",
-      type: "login",
-      format: "json",
-      origin: CLIENT_URL,
-    })}`,
-    {
-      method: "POST",
-      credentials: "include",
-    }
-  )
-    .then((response) => {
-      ResponseError.raiseForStatus(response);
-      return response.json();
-    })
-    .then((json) => {
-      WikibaseError.raiseForErrors(json);
-      return json.query.tokens.logintoken;
-    });
+  return handleErrors(
+    fetch(
+      `${API_URL}?${new URLSearchParams({
+        action: "query",
+        meta: "tokens",
+        type: "login",
+        format: "json",
+        origin: CLIENT_URL,
+      })}`,
+      {
+        method: "POST",
+        credentials: "include",
+      }
+    )
+  ).then((json) => json.query.tokens.logintoken);
 }
 
 async function fetchCsrfToken(): Promise<string> {
-  return fetch(
-    `${API_URL}?${new URLSearchParams({
-      action: "query",
-      meta: "tokens",
-      format: "json",
-      origin: CLIENT_URL,
-    })}`,
-    {
-      method: "POST",
-      credentials: "include",
-    }
-  )
-    .then((response) => {
-      ResponseError.raiseForStatus(response);
-      return response.json();
-    })
-    .then((json) => {
-      WikibaseError.raiseForErrors(json);
-      return json.query.tokens.csrftoken;
-    });
-}
-
-async function handleErrors(promise: Promise<Response>): Promise<any> {
-  return promise
-    .then((response) => {
-      ResponseError.raiseForStatus(response);
-      return response.json();
-    })
-    .then((json) => {
-      WikibaseError.raiseForErrors(json);
-      return json;
-    });
+  return handleErrors(
+    fetch(
+      `${API_URL}?${new URLSearchParams({
+        action: "query",
+        meta: "tokens",
+        format: "json",
+        origin: CLIENT_URL,
+      })}`,
+      {
+        method: "POST",
+        credentials: "include",
+      }
+    )
+  ).then((json) => json.query.tokens.csrftoken);
 }
 
 export async function assertLogin() {
@@ -260,16 +190,6 @@ export function getItemUrl(type: EntityType, id: string) {
   return `${WIKI_URL}/${type}:${id}`;
 }
 
-export async function sparqlQuery(query: string | SparqlQueryDesc) {
-  const queryStr = typeof query === "string" ? query : buildSparqlQuery(query);
-
-  return handleErrors(
-    fetch(`${SPARQL_URL}?query=${encodeURIComponent(queryStr)}`, {
-      headers: { Accept: "application/sparql-results+json" },
-    })
-  );
-}
-
 export interface GetClaimsResult {
   claims: { [property: string]: { id: string }[] };
 }
@@ -363,4 +283,4 @@ export async function deleteItem(itemId: string) {
   );
 }
 
-export type { SparqlQueryDesc };
+export { ResponseError, type ErrorData, WikibaseError } from "./errors";

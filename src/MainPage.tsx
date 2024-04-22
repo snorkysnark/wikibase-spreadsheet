@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { LoginContext } from "./Login";
 import {
   AppBar,
@@ -14,38 +14,11 @@ import {
   ArrowUpward as UploadIcon,
 } from "@mui/icons-material";
 import StructurePanel from "./structurepanel/StructurePanel";
-import { StructureSettings, TableStructure } from "./structure";
+import { StructureSettings } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
-import {
-  TableModifications,
-  TableRows,
-  queryRows,
-  updateChanged,
-  uploadNewItem,
-} from "./tableContent";
-import TableEditor, { TableEditorHandle } from "./TableEditor";
-import UploadDialog from "./UploadDialog";
-import { useMutation } from "react-query";
-import { deleteItem } from "./wikibase";
-
-async function upload(
-  modifications: TableModifications,
-  isInstanceProp: string,
-  parentItem: string
-) {
-  for (const [itemId, changes] of Object.entries(modifications.changed)) {
-    await updateChanged(itemId, changes);
-  }
-
-  for (const item of modifications.added) {
-    await uploadNewItem(item, isInstanceProp, parentItem);
-  }
-
-  for (const itemId of modifications.deleted) {
-    await deleteItem(itemId);
-  }
-}
+import { SparqlTable, itemSparqlQuery } from "./wikibase/sparql";
+import TableEditor from "./TableEditor";
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
@@ -66,27 +39,19 @@ export default function MainPage() {
     return index >= 0 ? index : null;
   }, [tableSettings, currentTableUuid]);
 
-  const tableFieldsWithLabel = useMemo<TableStructure<string> | null>(() => {
-    if (currentTableIndex === null) return null;
-
-    return produce(tableSettings.tables[currentTableIndex], (table) => {
-      table.fields = [
-        { uuid: "label", property: "label", name: "label" },
-        ...table.fields,
-      ];
-    });
-  }, [tableSettings, currentTableIndex]);
-
-  const [tableContent, setTableContent] = useState<TableRows | null>(null);
+  const [tableContent, setTableContent] = useState<SparqlTable | null>(null);
   const [queryResetter, resetQuery] = useState({});
   useEffect(() => {
     if (tableSettings.isInstanceProperty && currentTableIndex !== null) {
       let valid = true;
 
-      queryRows(
-        tableSettings.isInstanceProperty,
-        tableSettings.tables[currentTableIndex]
-      ).then((data) => {
+      itemSparqlQuery({
+        isInstanceProp: tableSettings.isInstanceProperty,
+        parent: tableSettings.tables[currentTableIndex].parentItem,
+        properties: tableSettings.tables[currentTableIndex].fields.map(
+          (field) => field.property
+        ),
+      }).then((data) => {
         if (valid) setTableContent(data);
       });
 
@@ -97,21 +62,6 @@ export default function MainPage() {
       setTableContent(null);
     }
   }, [tableSettings, currentTableIndex, queryResetter]);
-
-  const hotTable = useRef<TableEditorHandle>(null);
-  const uploadTask = useMutation<
-    void,
-    Error,
-    {
-      modifications: TableModifications;
-      isInstanceProp: string;
-      parentItem: string;
-    }
-  >(
-    ({ modifications, isInstanceProp, parentItem }) =>
-      upload(modifications, isInstanceProp, parentItem),
-    { onSuccess: () => resetQuery({}) }
-  );
 
   return (
     <>
@@ -146,35 +96,13 @@ export default function MainPage() {
                 </MenuItem>
               ))}
             </Select>
-            <IconButton
-              aria-label="add row"
-              onClick={() => hotTable.current?.addRow()}
-            >
+            <IconButton aria-label="add row">
               <AddIcon />
             </IconButton>
-            <IconButton
-              aria-label="delete row"
-              onClick={() => hotTable.current?.toggleRowDeletion()}
-            >
+            <IconButton aria-label="delete row">
               <RemoveIcon />
             </IconButton>
-            <IconButton
-              aria-label="upload"
-              onClick={() => {
-                if (
-                  hotTable.current &&
-                  tableSettings.isInstanceProperty &&
-                  currentTableIndex !== null
-                ) {
-                  uploadTask.mutate({
-                    modifications: hotTable.current.getModifications(),
-                    isInstanceProp: tableSettings.isInstanceProperty,
-                    parentItem:
-                      tableSettings.tables[currentTableIndex].parentItem,
-                  });
-                }
-              }}
-            >
+            <IconButton aria-label="upload">
               <UploadIcon />
             </IconButton>
             <Button onClick={() => resetQuery({})}>reload</Button>
@@ -186,11 +114,10 @@ export default function MainPage() {
         </AppBar>
         <div css={{ width: "100%", height: "100%", display: "flex" }}>
           <div css={{ flex: "1" }}>
-            {tableFieldsWithLabel && tableContent && (
+            {currentTableIndex !== null && tableContent && (
               <TableEditor
-                ref={hotTable}
                 data={tableContent}
-                tableStructure={tableFieldsWithLabel}
+                tableStructure={tableSettings.tables[currentTableIndex]}
               />
             )}
           </div>
@@ -251,13 +178,6 @@ export default function MainPage() {
           </div>
         </div>
       </div>
-
-      {(uploadTask.isLoading || uploadTask.isError) && (
-        <UploadDialog
-          error={uploadTask.error}
-          onClose={() => uploadTask.reset()}
-        />
-      )}
     </>
   );
 }
