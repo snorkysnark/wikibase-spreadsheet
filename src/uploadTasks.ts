@@ -1,4 +1,4 @@
-import { editEntity } from "./wikibase";
+import { deleteItem, editEntity } from "./wikibase";
 
 export abstract class NamedTask {
   description: string;
@@ -104,5 +104,18 @@ export class CreationTask extends NamedTask {
       new: "item",
       data,
     });
+  }
+}
+
+export class DeletionTask extends NamedTask {
+  itemId: string;
+
+  constructor(itemId: string) {
+    super(`Deleting ${itemId}`);
+    this.itemId = itemId;
+  }
+
+  async run(): Promise<void> {
+    await deleteItem(this.itemId);
   }
 }

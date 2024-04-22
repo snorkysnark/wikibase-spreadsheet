@@ -12,6 +12,7 @@ import { SparqlTable } from "./wikibase/sparql";
 import { CellChange } from "node_modules/handsontable/common";
 import {
   CreationTask,
+  DeletionTask,
   ItemChanges,
   NamedTask,
   PropertyChanges,
@@ -273,6 +274,15 @@ const TableEditor = forwardRef(function TableEditor(
           modifications.push(
             new CreationTask(changes, isInstanceProp, parentItemId)
           );
+        }
+
+        const usedIds = new Set<string>();
+        for (const row of rowsForDeletion.current) {
+          const itemId = hot.getDataAtRowProp(row, "item");
+          if (!usedIds.has(itemId)) {
+            modifications.push(new DeletionTask(itemId));
+            usedIds.add(itemId);
+          }
         }
       }
       return modifications;
