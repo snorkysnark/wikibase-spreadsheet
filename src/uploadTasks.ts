@@ -11,7 +11,7 @@ export abstract class NamedTask {
 }
 
 export interface PropertyChanges {
-  guid: string | null;
+  guid?: string | null;
   property: string;
   value: string;
 }
@@ -26,6 +26,29 @@ function prepareGuid(guid: string): string {
   return guid.includes("$") ? guid : guid.replace("-", "$");
 }
 
+function toItemData(changes: ItemChanges): any {
+  const claims: any[] = [];
+  for (const { guid, property, value } of changes.properties) {
+    claims.push({
+      ...(guid && { id: prepareGuid(guid) }),
+      mainsnak: {
+        snaktype: "value",
+        property,
+        datavalue: { type: "string", value },
+      },
+      type: "statement",
+      rank: "normal",
+    });
+  }
+
+  return {
+    ...(changes.label && {
+      labels: { en: { language: "en", value: changes.label } },
+    }),
+    ...(claims.length > 0 && { claims }),
+  };
+}
+
 export class UpdateTask extends NamedTask {
   itemId: string;
   changes: ItemChanges;
@@ -37,28 +60,49 @@ export class UpdateTask extends NamedTask {
   }
 
   async run(): Promise<void> {
-    const claims: any[] = [];
-    for (const { guid, property, value } of this.changes.properties) {
-      claims.push({
-        ...(guid && { id: prepareGuid(guid) }),
-        mainsnak: {
-          snaktype: "value",
-          property,
-          datavalue: { type: "string", value },
-        },
-        type: "statement",
-        rank: "normal",
-      });
-    }
-
     await editEntity({
       id: this.itemId,
-      data: {
-        ...(this.changes.label && {
-          labels: { en: { language: "en", value: this.changes.label } },
-        }),
-        ...(claims.length > 0 && { claims }),
+      data: toItemData(this.changes),
+    });
+  }
+}
+
+export class CreationTask extends NamedTask {
+  isInstanceProp: string;
+  parentItem: number;
+  changes: ItemChanges;
+
+  constructor(
+    changes: ItemChanges,
+    isInstanceProp: string,
+    parentItem: number
+  ) {
+    super(`Creating item ${changes.label}`);
+    this.changes = changes;
+    this.isInstanceProp = isInstanceProp;
+    this.parentItem = parentItem;
+  }
+
+  async run(): Promise<void> {
+    const data = toItemData(this.changes);
+
+    if (!data.claims) data.claims = [];
+    data.claims.push({
+      mainsnak: {
+        snaktype: "value",
+        property: this.isInstanceProp,
+        datavalue: {
+          type: "wikibase-entityid",
+          value: { ["entity-type"]: "item", "numeric-id": this.parentItem },
+        },
       },
+      type: "statement",
+      rank: "normal",
+    });
+
+    await editEntity({
+      new: "item",
+      data,
     });
   }
 }

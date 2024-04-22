@@ -3,6 +3,7 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
 } from "react";
 import { TableStructure } from "./structure";
@@ -10,16 +11,17 @@ import Handsontable from "handsontable";
 import { SparqlTable } from "./wikibase/sparql";
 import { CellChange } from "node_modules/handsontable/common";
 import {
+  CreationTask,
   ItemChanges,
+  NamedTask,
   PropertyChanges,
   UpdateTask,
-  UploadTask,
 } from "./uploadTasks";
 
 export interface TableEditorHandle {
   addRow: () => void;
   toggleRowDeletion: () => void;
-  getModifications: () => UploadTask[];
+  getModifications: () => NamedTask[];
 }
 
 function addRow(hot: Handsontable) {
@@ -110,9 +112,11 @@ const TableEditor = forwardRef(function TableEditor(
   {
     data,
     tableStructure,
+    isInstanceProp,
   }: {
     data: SparqlTable;
     tableStructure: TableStructure<string>;
+    isInstanceProp: string;
   },
   ref: ForwardedRef<TableEditorHandle>
 ) {
@@ -120,6 +124,13 @@ const TableEditor = forwardRef(function TableEditor(
   const hotRef = useRef<Handsontable | null>(null);
   const rowsForDeletion = useRef(new Set<number>());
   const existingRows = useRef<number>(0);
+
+  const parentItemId = useMemo(() => {
+    const match = /Q(\d+)/.exec(tableStructure.parentItem);
+    if (!match)
+      throw new Error("Incorrect item id " + tableStructure.parentItem);
+    return +match[1];
+  }, [tableStructure]);
 
   useEffect(() => {
     const hot = new Handsontable(container.current!, {
@@ -195,7 +206,7 @@ const TableEditor = forwardRef(function TableEditor(
       hot.render();
     },
     getModifications: () => {
-      const modifications: UploadTask[] = [];
+      const modifications: NamedTask[] = [];
 
       const hot = hotRef.current;
       if (hot) {
@@ -243,6 +254,24 @@ const TableEditor = forwardRef(function TableEditor(
               label,
               properties: [...properties.values()],
             })
+          );
+        }
+
+        for (let row = existingRows.current; row < hot.countRows(); row++) {
+          const changes: ItemChanges = {
+            label: hot.getDataAtRowProp(row, "label"),
+            properties: tableStructure.fields
+              .map((field) => ({
+                property: field.property,
+                value: hot.getDataAtRowProp(
+                  row,
+                  `properties.${field.property}.value`
+                ),
+              }))
+              .filter(({ value }) => value !== null),
+          };
+          modifications.push(
+            new CreationTask(changes, isInstanceProp, parentItemId)
           );
         }
       }
