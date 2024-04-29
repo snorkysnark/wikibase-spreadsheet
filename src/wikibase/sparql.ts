@@ -60,20 +60,30 @@ export interface SparqlTable {
 }
 
 export interface SparqlRow {
-  item: string;
-  label: string;
+  itemId: number | null;
+  label: { value: string; originalValue?: string };
   properties: { [id: string]: SparqlProperty };
+  deleted?: boolean;
 }
 
 export interface SparqlProperty {
   guid: string | null;
   value: string | null;
+  originalValue?: string;
 }
 
 function lastUriPart(uri: string): string {
   const match = /\/([^\/]+)$/.exec(uri);
   if (match) {
     return match[1];
+  }
+  throw new Error("Invalid uri: " + uri);
+}
+
+function itemIdFromUri(uri: string): number {
+  const match = /Q(\d+)$/.exec(uri);
+  if (match) {
+    return +match[1];
   }
   throw new Error("Invalid uri: " + uri);
 }
@@ -85,8 +95,8 @@ export async function itemSparqlQuery(
     const properties = json.head.vars.filter((name) => name.startsWith("P"));
 
     const rows = json.results.bindings.map((binding) => ({
-      item: lastUriPart(binding.item.value),
-      label: binding.label.value,
+      itemId: itemIdFromUri(binding.item.value),
+      label: { value: binding.label.value },
       properties: Object.fromEntries(
         properties.map((propertyId) => {
           const propertyObject = binding[propertyId];

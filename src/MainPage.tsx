@@ -117,26 +117,13 @@ export default function MainPage() {
                 </MenuItem>
               ))}
             </Select>
-            <IconButton
-              aria-label="add row"
-              onClick={() => hotRef.current?.addRow()}
-            >
+            <IconButton aria-label="add row">
               <AddIcon />
             </IconButton>
-            <IconButton
-              aria-label="delete row"
-              onClick={() => hotRef.current?.toggleRowDeletion()}
-            >
+            <IconButton aria-label="delete row">
               <RemoveIcon />
             </IconButton>
-            <IconButton
-              aria-label="upload"
-              onClick={() => {
-                if (hotRef.current) {
-                  tasks.mutate(hotRef.current.getModifications());
-                }
-              }}
-            >
+            <IconButton aria-label="upload">
               <UploadIcon />
             </IconButton>
             <Button onClick={() => resetQuery({})}>reload</Button>
@@ -148,16 +135,13 @@ export default function MainPage() {
         </AppBar>
         <div css={{ width: "100%", height: "100%", display: "flex" }}>
           <div css={{ flex: "1" }}>
-            {tableSettings.isInstanceProperty &&
-              currentTableIndex !== null &&
-              tableContent && (
-                <TableEditor
-                  ref={hotRef}
-                  data={tableContent}
-                  tableStructure={tableSettings.tables[currentTableIndex]}
-                  isInstanceProp={tableSettings.isInstanceProperty}
-                />
-              )}
+            {currentTableIndex !== null && tableContent && (
+              <TableEditor
+                ref={hotRef}
+                data={tableContent}
+                tableStructure={tableSettings.tables[currentTableIndex]}
+              />
+            )}
           </div>
           <div
             css={{
