@@ -6,7 +6,7 @@ import {
   useRef,
 } from "react";
 import { TableStructure } from "./structure";
-import { SparqlTable } from "./wikibase/sparql";
+import { SparqlRow } from "./wikibase/sparql";
 import Handsontable from "handsontable";
 import { CellMeta } from "node_modules/handsontable/settings";
 
@@ -50,7 +50,7 @@ const TableEditor = forwardRef(function TableEditor(
     data,
     tableStructure,
   }: {
-    data: SparqlTable;
+    data: SparqlRow[];
     tableStructure: TableStructure<string>;
   },
   ref: ForwardedRef<TableEditorHandle>
@@ -64,7 +64,7 @@ const TableEditor = forwardRef(function TableEditor(
         "label",
         ...tableStructure.fields.map((field) => field.name),
       ],
-      data: data.rows,
+      data,
       dataSchema: {
         itemId: null,
         label: { value: "" },
@@ -96,13 +96,6 @@ const TableEditor = forwardRef(function TableEditor(
         for (const [row, column, prevValue, nextValue] of changes.filter(
           notEmpty
         )) {
-          const prop = column as string;
-          const propStart = prop.substring(0, prop.lastIndexOf("."));
-
-          console.log(
-            "originalValue",
-            hot.getDataAtRowProp(row, propStart + ".originalValue")
-          );
         }
       },
     });
@@ -111,8 +104,15 @@ const TableEditor = forwardRef(function TableEditor(
 
     return () => {
       hot.destroy();
+      hotRef.current = null;
     };
-  }, [data, tableStructure]);
+  }, [tableStructure]);
+
+  useEffect(() => {
+    if (hotRef.current) {
+      hotRef.current.loadData(data);
+    }
+  }, [data]);
 
   useImperativeHandle(ref, () => ({}));
 
