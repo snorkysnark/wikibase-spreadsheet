@@ -1,4 +1,11 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { LoginContext } from "./Login";
 import {
   AppBar,
@@ -17,8 +24,8 @@ import StructurePanel from "./structurepanel/StructurePanel";
 import { StructureSettings } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
-import { SparqlRow, sparqlQuery } from "./wikibase/sparql";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
+import { loadTableFromQuery, localTableReducer } from "./localTable";
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
@@ -39,27 +46,27 @@ export default function MainPage() {
     return index >= 0 ? index : null;
   }, [tableSettings, currentTableUuid]);
 
-  const [tableContent, setTableContent] = useState<SparqlRow[] | null>(null);
+  const [localTable, updateLocalTable] = useReducer(localTableReducer, null);
   const [queryResetter, resetQuery] = useState({});
   useEffect(() => {
     if (tableSettings.isInstanceProperty && currentTableIndex !== null) {
       let valid = true;
 
-      sparqlQuery({
+      loadTableFromQuery({
         isInstanceProp: tableSettings.isInstanceProperty,
         parent: tableSettings.tables[currentTableIndex].parentItem,
         properties: tableSettings.tables[currentTableIndex].fields.map(
           (field) => field.property
         ),
       }).then((data) => {
-        if (valid) setTableContent(data);
+        if (valid) updateLocalTable({ action: "set", value: data });
       });
 
       return () => {
         valid = false;
       };
     } else {
-      setTableContent(null);
+      updateLocalTable({ action: "set", value: null });
     }
   }, [tableSettings, currentTableIndex, queryResetter]);
 
@@ -116,10 +123,10 @@ export default function MainPage() {
         </AppBar>
         <div css={{ width: "100%", height: "100%", display: "flex" }}>
           <div css={{ flex: "1" }}>
-            {currentTableIndex !== null && tableContent && (
+            {currentTableIndex !== null && localTable && (
               <TableEditor
                 ref={hotRef}
-                data={tableContent}
+                data={localTable}
                 tableStructure={tableSettings.tables[currentTableIndex]}
               />
             )}

@@ -6,9 +6,10 @@ import {
   useRef,
 } from "react";
 import { TableStructure } from "./structure";
-import { SparqlRow } from "./wikibase/sparql";
 import Handsontable from "handsontable";
 import { CellMeta } from "node_modules/handsontable/settings";
+import { nonNullish } from "./util";
+import { LocalRow } from "./localTable";
 
 export interface TableEditorHandle {}
 
@@ -41,16 +42,12 @@ function getCellSettings(
   return {};
 }
 
-function notEmpty<TValue>(value: TValue | null | undefined): value is TValue {
-  return value !== null && value !== undefined;
-}
-
 const TableEditor = forwardRef(function TableEditor(
   {
     data,
     tableStructure,
   }: {
-    data: SparqlRow[];
+    data: LocalRow[];
     tableStructure: TableStructure<string>;
   },
   ref: ForwardedRef<TableEditorHandle>
@@ -94,8 +91,9 @@ const TableEditor = forwardRef(function TableEditor(
       },
       beforeChange(changes, source) {
         for (const [row, column, prevValue, nextValue] of changes.filter(
-          notEmpty
+          nonNullish
         )) {
+          const itemId: number | null = hot.getDataAtRowProp(row, "itemId");
         }
       },
     });
