@@ -7,17 +7,21 @@ import {
 } from "react";
 import { TableStructure } from "./structure";
 import Handsontable from "handsontable";
-import { CellMeta } from "node_modules/handsontable/settings";
+import { CellMeta, CellProperties } from "node_modules/handsontable/settings";
 import { nonNullish } from "./util";
 import { LocalRow } from "./localTable";
 
-export interface TableEditorHandle {}
+export interface TableEditorHandle {
+  render(): void;
+}
 
-function getCellSettings(
+type CellChangeString = [number, string, any, any];
+
+function extendCellSettings(
   hot: Handsontable,
+  settings: CellProperties,
   row: number,
-  column: number,
-  prop: string
+  column: number
 ): CellMeta {
   if (hot.getDataAtRowProp(row, "deleted")) {
     return { className: "deleted", readOnly: true };
@@ -28,18 +32,38 @@ function getCellSettings(
     return { className: "edited" }; // New row
   }
 
-  const originalValue = hot.getDataAtRowProp(
-    row,
-    prop.replace(/\.value$/, ".originalValue")
-  );
-  if (
-    originalValue !== null &&
-    originalValue !== hot.getDataAtCell(row, column)
-  ) {
+  const originalValue = settings.originalValue;
+  if (originalValue && originalValue !== hot.getDataAtCell(row, column)) {
     return { className: "edited" };
   }
 
-  return {};
+  return { className: undefined, readOnly: false };
+}
+
+function updateRowProp(
+  hot: Handsontable,
+  row: number,
+  column: number,
+  prevValue: any,
+  nextValue: any
+) {
+  const originalValue = hot.getCellMeta(row, column).originalValue;
+
+  hot.setDataAtCell(row, column, nextValue, "auto");
+  hot.setCellMeta(row, column, "originalValue", originalValue ?? prevValue);
+}
+
+type PropFilter = [prop: string, value: any];
+
+function rowMatchesFilters(
+  hot: Handsontable,
+  row: number,
+  filters: PropFilter[]
+): boolean {
+  for (const [prop, value] of filters) {
+    if (hot.getDataAtRowProp(row, prop) !== value) return false;
+  }
+  return true;
 }
 
 const TableEditor = forwardRef(function TableEditor(
@@ -86,14 +110,34 @@ const TableEditor = forwardRef(function TableEditor(
         const itemId: number | null = hot.getDataAtRowProp(index, "itemId");
         return itemId !== null ? `Q${itemId}` : "?";
       },
-      cells(row, column, prop) {
-        return getCellSettings(hot, row, column, prop as string);
+      cells(row, column) {
+        return extendCellSettings(hot, this, row, column);
       },
       beforeChange(changes, source) {
-        for (const [row, column, prevValue, nextValue] of changes.filter(
+        if (source !== "edit") return;
+
+        for (const [row, prop, prevValue, nextValue] of changes.filter(
           nonNullish
-        )) {
+        ) as CellChangeString[]) {
+          const column = hot.propToCol(prop) as number;
+
           const itemId: number | null = hot.getDataAtRowProp(row, "itemId");
+          if (itemId === null) {
+            updateRowProp(hot, row, column, nextValue, prevValue);
+          } else {
+            const filters: PropFilter[] = [["itemId", itemId]];
+            if (prop.startsWith("properties.")) {
+              const guidProp = prop.replace(/\.value$/, ".guid");
+              filters.push([guidProp, hot.getDataAtRowProp(row, guidProp)]);
+            }
+
+            const rowCount = hot.countRows();
+            for (let row = 0; row < rowCount; row++) {
+              if (rowMatchesFilters(hot, row, filters)) {
+                updateRowProp(hot, row, column, prevValue, nextValue);
+              }
+            }
+          }
         }
       },
     });
@@ -112,7 +156,11 @@ const TableEditor = forwardRef(function TableEditor(
     }
   }, [data]);
 
-  useImperativeHandle(ref, () => ({}));
+  useImperativeHandle(ref, () => ({
+    render() {
+      hotRef.current?.render();
+    },
+  }));
 
   return <div ref={container}></div>;
 });

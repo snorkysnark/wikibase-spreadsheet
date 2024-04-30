@@ -1,11 +1,4 @@
-import {
-  useContext,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-} from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { LoginContext } from "./Login";
 import {
   AppBar,
@@ -25,7 +18,7 @@ import { StructureSettings } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
-import { loadTableFromQuery, localTableReducer } from "./localTable";
+import { LocalRow, loadTableFromQuery } from "./localTable";
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
@@ -46,7 +39,7 @@ export default function MainPage() {
     return index >= 0 ? index : null;
   }, [tableSettings, currentTableUuid]);
 
-  const [localTable, updateLocalTable] = useReducer(localTableReducer, null);
+  const [localTable, setLocalTable] = useState<LocalRow[] | null>(null);
   const [queryResetter, resetQuery] = useState({});
   useEffect(() => {
     if (tableSettings.isInstanceProperty && currentTableIndex !== null) {
@@ -59,14 +52,14 @@ export default function MainPage() {
           (field) => field.property
         ),
       }).then((data) => {
-        if (valid) updateLocalTable({ action: "set", value: data });
+        if (valid) setLocalTable(data);
       });
 
       return () => {
         valid = false;
       };
     } else {
-      updateLocalTable({ action: "set", value: null });
+      setLocalTable(null);
     }
   }, [tableSettings, currentTableIndex, queryResetter]);
 
@@ -115,6 +108,7 @@ export default function MainPage() {
               <UploadIcon />
             </IconButton>
             <Button onClick={() => resetQuery({})}>reload</Button>
+            <Button onClick={() => hotRef.current?.render()}>render</Button>
             <div css={{ flex: "1" }} />
             <Button variant="contained" onClick={logout}>
               Logout

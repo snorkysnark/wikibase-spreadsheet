@@ -1,4 +1,3 @@
-import { produce } from "immer";
 import { sparqlQuery } from "./wikibase/sparql";
 
 export interface SparqlQueryDesc {
@@ -33,15 +32,13 @@ function buildItemQuery(desc: SparqlQueryDesc) {
 
 export interface LocalRow {
   itemId: number | null;
-  label: { value: string; originalValue?: string };
+  label: { value: string };
   properties: { [id: string]: LocalProperty };
-  deleted?: boolean;
 }
 
 export interface LocalProperty {
   guid: string | null;
   value: string | null;
-  originalValue?: string;
 }
 
 function lastUriPart(uri: string): string {
@@ -88,61 +85,4 @@ export async function loadTableFromQuery(
 
     return rows;
   });
-}
-
-export type WhereFilter = [path: string[], value: any][];
-export type LocalTableAction =
-  | { action: "set"; value: LocalRow[] | null }
-  | {
-      action: "updateAt";
-      row: number;
-      updater: (value: LocalRow) => LocalRow;
-    }
-  | {
-      action: "updateWhere";
-      filter: WhereFilter;
-      updater: (value: LocalRow) => LocalRow;
-    };
-
-function objectValueAtPath(path: string[], obj: object): any {
-  let current: any = obj;
-
-  for (const field of path) {
-    if (field in current) {
-      current = current[field];
-    } else {
-      return undefined;
-    }
-  }
-
-  return current;
-}
-
-function matchesFilter(row: object, filter: WhereFilter): boolean {
-  for (const [path, value] of filter) {
-    if (objectValueAtPath(path, row) !== value) return false;
-  }
-  return true;
-}
-
-export function localTableReducer(
-  state: LocalRow[] | null,
-  action: LocalTableAction
-): LocalRow[] | null {
-  switch (action.action) {
-    case "set":
-      return action.value;
-    case "updateAt":
-      if (state === null) return null;
-      return [
-        ...state.slice(0, action.row),
-        action.updater(state[action.row]),
-        ...state.slice(action.row + 1),
-      ];
-    case "updateWhere":
-      if (state === null) return null;
-      return state.map((row) =>
-        matchesFilter(row, action.filter) ? action.updater(row) : row
-      );
-  }
 }
