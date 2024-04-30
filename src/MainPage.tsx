@@ -17,22 +17,8 @@ import StructurePanel from "./structurepanel/StructurePanel";
 import { StructureSettings } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
-import { SparqlTable, itemSparqlQuery } from "./wikibase/sparql";
+import { SparqlRow, sparqlQuery } from "./wikibase/sparql";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
-import { NamedTask } from "./uploadTasks";
-import { useMutation } from "react-query";
-import UploadDialog from "./UploadDialog";
-
-async function runTasks(
-  tasks: NamedTask[],
-  setDescription: (value: string | null) => void
-) {
-  for (const task of tasks) {
-    setDescription(task.description);
-    await task.run();
-  }
-  setDescription(null);
-}
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
@@ -53,13 +39,13 @@ export default function MainPage() {
     return index >= 0 ? index : null;
   }, [tableSettings, currentTableUuid]);
 
-  const [tableContent, setTableContent] = useState<SparqlTable | null>(null);
+  const [tableContent, setTableContent] = useState<SparqlRow[] | null>(null);
   const [queryResetter, resetQuery] = useState({});
   useEffect(() => {
     if (tableSettings.isInstanceProperty && currentTableIndex !== null) {
       let valid = true;
 
-      itemSparqlQuery({
+      sparqlQuery({
         isInstanceProp: tableSettings.isInstanceProperty,
         parent: tableSettings.tables[currentTableIndex].parentItem,
         properties: tableSettings.tables[currentTableIndex].fields.map(
@@ -78,11 +64,6 @@ export default function MainPage() {
   }, [tableSettings, currentTableIndex, queryResetter]);
 
   const hotRef = useRef<TableEditorHandle | null>(null);
-  const [taskDescription, setTaskDescription] = useState<string | null>(null);
-  const tasks = useMutation<void, Error, NamedTask[]>(
-    (tasks: NamedTask[]) => runTasks(tasks, setTaskDescription),
-    { onSettled: () => resetQuery({}) }
-  );
 
   return (
     <>
@@ -200,19 +181,6 @@ export default function MainPage() {
           </div>
         </div>
       </div>
-
-      {taskDescription && (
-        <UploadDialog
-          description={taskDescription}
-          error={tasks.error}
-          onClose={() => {
-            if (tasks.isError) {
-              tasks.reset();
-              setTaskDescription(null);
-            }
-          }}
-        />
-      )}
     </>
   );
 }

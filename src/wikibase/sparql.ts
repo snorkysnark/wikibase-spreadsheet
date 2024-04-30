@@ -9,7 +9,7 @@ export interface SparqlQueryDesc {
   properties: string[];
 }
 
-export function buildItemQuery(desc: SparqlQueryDesc) {
+function buildItemQuery(desc: SparqlQueryDesc) {
   const fields = [
     "?item",
     "?label",
@@ -33,9 +33,7 @@ export function buildItemQuery(desc: SparqlQueryDesc) {
   }`;
 }
 
-export async function rawSparqlQuery(
-  query: string
-): Promise<RawSparqlResponse> {
+async function rawSparqlQuery(query: string): Promise<RawSparqlResponse> {
   return handleErrors(
     fetch(`${SPARQL_URL}?query=${encodeURIComponent(query)}`, {
       headers: { Accept: "application/sparql-results+json" },
@@ -43,20 +41,15 @@ export async function rawSparqlQuery(
   );
 }
 
-export interface RawSparqlResponse {
+interface RawSparqlResponse {
   head: { vars: string[] };
   results: {
     bindings: RawSparqlBinding[];
   };
 }
 
-export interface RawSparqlBinding {
+interface RawSparqlBinding {
   [name: string]: { type: string; value: string };
-}
-
-export interface SparqlTable {
-  properties: string[];
-  rows: SparqlRow[];
 }
 
 export interface SparqlRow {
@@ -88,9 +81,7 @@ function itemIdFromUri(uri: string): number {
   throw new Error("Invalid uri: " + uri);
 }
 
-export async function itemSparqlQuery(
-  desc: SparqlQueryDesc
-): Promise<SparqlTable> {
+export async function sparqlQuery(desc: SparqlQueryDesc): Promise<SparqlRow[]> {
   return rawSparqlQuery(buildItemQuery(desc)).then((json) => {
     const properties = json.head.vars.filter((name) => name.startsWith("P"));
 
@@ -114,6 +105,6 @@ export async function itemSparqlQuery(
       ),
     }));
 
-    return { properties, rows };
+    return rows;
   });
 }
