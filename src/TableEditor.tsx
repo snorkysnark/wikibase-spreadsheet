@@ -13,6 +13,7 @@ import { LocalRow } from "./localTable";
 
 export interface TableEditorHandle {
   render(): void;
+  addRow(): void;
 }
 
 type CellChangeString = [number, string, any, any];
@@ -159,6 +160,16 @@ const TableEditor = forwardRef(function TableEditor(
   useImperativeHandle(ref, () => ({
     render() {
       hotRef.current?.render();
+    },
+    addRow() {
+      const hot = hotRef.current;
+      if (hot) {
+        hot.alter("insert_row_below");
+
+        const lastRow = hot.countRows() - 1;
+        hot.setDataAtRowProp(lastRow, "label.value", crypto.randomUUID());
+        hot.selectCell(lastRow, 0);
+      }
     },
   }));
 
