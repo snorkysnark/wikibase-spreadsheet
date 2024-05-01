@@ -14,6 +14,7 @@ import { LocalRow } from "./localTable";
 export interface TableEditorHandle {
   render(): void;
   addRow(): void;
+  toggleRowDeletion(): void;
 }
 
 type CellChangeString = [number, string, any, any];
@@ -22,19 +23,23 @@ function extendCellSettings(
   hot: Handsontable,
   settings: CellProperties,
   row: number,
-  column: number
+  column: number,
+  itemsForDeleteion: Set<number>
 ): CellMeta {
-  if (hot.getDataAtRowProp(row, "deleted")) {
-    return { className: "deleted", readOnly: true };
-  }
-
   const itemId = hot.getDataAtRowProp(row, "itemId");
   if (itemId === null) {
     return { className: "edited" }; // New row
   }
 
+  if (itemsForDeleteion.has(itemId)) {
+    return { className: "deleted", readOnly: true };
+  }
+
   const originalValue = settings.originalValue;
-  if (originalValue && originalValue !== hot.getDataAtCell(row, column)) {
+  if (
+    originalValue !== undefined &&
+    originalValue !== hot.getDataAtCell(row, column)
+  ) {
     return { className: "edited" };
   }
 
@@ -67,6 +72,37 @@ function rowMatchesFilters(
   return true;
 }
 
+function getSelectedItems(
+  hot: Handsontable
+): [itemIds: Set<number>, newRows: Set<number>] {
+  const itemIds = new Set<number>();
+  const newRows = new Set<number>();
+
+  hot.getSelectedRange()?.forEach((range) => {
+    for (let row = range.from.row; row <= range.to.row; row++) {
+      const itemId = hot.getDataAtRowProp(row, "itemId");
+
+      if (itemId !== null) {
+        itemIds.add(itemId);
+      } else {
+        newRows.add(row);
+      }
+    }
+  });
+
+  return [itemIds, newRows];
+}
+
+function resetRowToOriginalValue(hot: Handsontable, row: number) {
+  const colCount = hot.countCols();
+  for (let column = 0; column < colCount; column++) {
+    const originalValue = hot.getCellMeta(row, column).originalValue;
+    if (originalValue !== undefined) {
+      hot.setDataAtCell(row, column, originalValue, "auto");
+    }
+  }
+}
+
 const TableEditor = forwardRef(function TableEditor(
   {
     data,
@@ -80,7 +116,11 @@ const TableEditor = forwardRef(function TableEditor(
   const container = useRef<HTMLDivElement | null>(null);
   const hotRef = useRef<Handsontable | null>(null);
 
+  const itemsForDeleteion = useRef(new Set<number>());
+
   useEffect(() => {
+    itemsForDeleteion.current.clear();
+
     const hot = new Handsontable(container.current!, {
       colHeaders: [
         "label",
@@ -112,7 +152,13 @@ const TableEditor = forwardRef(function TableEditor(
         return itemId !== null ? `Q${itemId}` : "?";
       },
       cells(row, column) {
-        return extendCellSettings(hot, this, row, column);
+        return extendCellSettings(
+          hot,
+          this,
+          row,
+          column,
+          itemsForDeleteion.current
+        );
       },
       beforeChange(changes, source) {
         if (source !== "edit") return;
@@ -152,6 +198,8 @@ const TableEditor = forwardRef(function TableEditor(
   }, [tableStructure]);
 
   useEffect(() => {
+    itemsForDeleteion.current.clear();
+
     if (hotRef.current) {
       hotRef.current.loadData(data);
     }
@@ -169,6 +217,35 @@ const TableEditor = forwardRef(function TableEditor(
         const lastRow = hot.countRows() - 1;
         hot.setDataAtRowProp(lastRow, "label.value", crypto.randomUUID());
         hot.selectCell(lastRow, 0);
+      }
+    },
+    toggleRowDeletion() {
+      const hot = hotRef.current;
+      if (hot) {
+        const [itemIds, newRows] = getSelectedItems(hot);
+
+        // Remove in reversed order
+        for (const row of [...newRows].sort((a, b) => b - a)) {
+          hot.alter("remove_row", row);
+        }
+
+        // Mark for deletion
+        for (const itemId of itemIds) {
+          if (itemsForDeleteion.current.has(itemId)) {
+            itemsForDeleteion.current.delete(itemId);
+          } else {
+            itemsForDeleteion.current.add(itemId);
+          }
+        }
+        for (let row = 0; row < hot.countRows(); row++) {
+          if (
+            itemsForDeleteion.current.has(hot.getDataAtRowProp(row, "itemId"))
+          ) {
+            resetRowToOriginalValue(hot, row);
+          }
+        }
+
+        hot.render();
       }
     },
   }));
