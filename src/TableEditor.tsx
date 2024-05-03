@@ -3,6 +3,7 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
 } from "react";
 import { TableStructure } from "./structure";
@@ -12,9 +13,15 @@ import { nonNullish } from "./util";
 import { LocalRow } from "./localTable";
 
 export interface TableEditorHandle {
-  render(): void;
-  addRow(): void;
+  table: Handsontable | null;
+  columnSettings: ColumnSettings[];
+  addDefaultRow(): void;
   toggleRowDeletion(): void;
+}
+
+export interface ColumnSettings {
+  name: string;
+  prop: string;
 }
 
 type CellChangeString = [number, string, any, any];
@@ -118,14 +125,22 @@ const TableEditor = forwardRef(function TableEditor(
 
   const itemsForDeleteion = useRef(new Set<number>());
 
+  const colSettings = useMemo<ColumnSettings[]>(
+    () => [
+      { name: "label", prop: "label.value" },
+      ...tableStructure.fields.map((field) => ({
+        name: field.name,
+        prop: `properties.${field.property}.value`,
+      })),
+    ],
+    [tableStructure]
+  );
+
   useEffect(() => {
     itemsForDeleteion.current.clear();
 
     const hot = new Handsontable(container.current!, {
-      colHeaders: [
-        "label",
-        ...tableStructure.fields.map((field) => field.name),
-      ],
+      colHeaders: [...colSettings.map((col) => col.name)],
       data,
       dataSchema: {
         itemId: null,
@@ -137,12 +152,7 @@ const TableEditor = forwardRef(function TableEditor(
           ])
         ),
       },
-      columns: [
-        { data: "label.value" },
-        ...tableStructure.fields.map((field) => ({
-          data: `properties.${field.property}.value`,
-        })),
-      ],
+      columns: [...colSettings.map((col) => ({ data: col.prop }))],
       outsideClickDeselects: false,
       licenseKey: "non-commercial-and-evaluation",
     });
@@ -195,7 +205,7 @@ const TableEditor = forwardRef(function TableEditor(
       hot.destroy();
       hotRef.current = null;
     };
-  }, [tableStructure]);
+  }, [colSettings]);
 
   useEffect(() => {
     itemsForDeleteion.current.clear();
@@ -206,10 +216,9 @@ const TableEditor = forwardRef(function TableEditor(
   }, [data]);
 
   useImperativeHandle(ref, () => ({
-    render() {
-      hotRef.current?.render();
-    },
-    addRow() {
+    table: hotRef.current,
+    columnSettings: colSettings,
+    addDefaultRow() {
       const hot = hotRef.current;
       if (hot) {
         hot.alter("insert_row_below");

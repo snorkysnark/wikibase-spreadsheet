@@ -19,6 +19,7 @@
         "@handsontable/react": "^14.1.0",
         "@mui/icons-material": "^5.15.13",
         "@mui/material": "^5.15.13",
+        "csv-parse": "^5.5.5",
         "handsontable": "^14.1.0",
         "immer": "^10.0.4",
         "react": "^18.2.0",

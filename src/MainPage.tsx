@@ -8,17 +8,33 @@ import {
   Select,
   Toolbar,
 } from "@mui/material";
+import { styled } from "@mui/material/styles";
 import {
   Add as AddIcon,
   Remove as RemoveIcon,
   ArrowUpward as UploadIcon,
+  Cached as ReloadIcon,
 } from "@mui/icons-material";
 import StructurePanel from "./structurepanel/StructurePanel";
 import { StructureSettings } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
+import { parse as parseCsv } from "csv-parse/browser/esm/sync";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
 import { LocalRow, loadTableFromQuery } from "./localTable";
+import { DEFAULT_CSV_MAP, applyCsv } from "./csv";
+
+const HiddenInput = styled("input")({
+  clip: "rect(0 0 0 0)",
+  clipPath: "inset(50%)",
+  height: 1,
+  overflow: "hidden",
+  position: "absolute",
+  bottom: 0,
+  left: 0,
+  whiteSpace: "nowrap",
+  width: 1,
+});
 
 export default function MainPage() {
   const { logout } = useContext(LoginContext);
@@ -100,7 +116,7 @@ export default function MainPage() {
             </Select>
             <IconButton
               aria-label="add row"
-              onClick={() => hotRef.current?.addRow()}
+              onClick={() => hotRef.current?.addDefaultRow()}
             >
               <AddIcon />
             </IconButton>
@@ -113,8 +129,32 @@ export default function MainPage() {
             <IconButton aria-label="upload">
               <UploadIcon />
             </IconButton>
-            <Button onClick={() => resetQuery({})}>reload</Button>
-            <Button onClick={() => hotRef.current?.render()}>render</Button>
+            <IconButton aria-label="reload" onClick={() => resetQuery({})}>
+              <ReloadIcon />
+            </IconButton>
+            <Button component="label">
+              CSV
+              <HiddenInput
+                type="file"
+                onChange={(event) => {
+                  if (event.target.files && hotRef.current) {
+                    const reader = new FileReader();
+                    reader.readAsText(event.target.files[0]);
+                    reader.onload = () => {
+                      const csv = parseCsv(reader.result as string, {
+                        columns: true,
+                      });
+                      event.target.value = "";
+
+                      applyCsv(hotRef.current!, csv, DEFAULT_CSV_MAP);
+                    };
+                  }
+                }}
+              />
+            </Button>
+            <Button onClick={() => hotRef.current?.table?.render()}>
+              render
+            </Button>
             <div css={{ flex: "1" }} />
             <Button variant="contained" onClick={logout}>
               Logout
