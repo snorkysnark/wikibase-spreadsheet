@@ -25,6 +25,7 @@ export default function ControlsBar({
   addRow,
   deleteRow,
   reload,
+  csvExport,
 }: {
   currentTable: string | null;
   setCurrentTable: (value: string | null) => void;
@@ -32,6 +33,7 @@ export default function ControlsBar({
   addRow: () => void;
   deleteRow: () => void;
   reload: () => void;
+  csvExport: () => void;
 }) {
   const { logout } = useContext(LoginContext);
 
@@ -73,7 +75,7 @@ export default function ControlsBar({
           <ReloadIcon />
         </IconButton>
         <div css={{ flex: "1" }} />
-        <IconButton aria-label="export">
+        <IconButton aria-label="export" onClick={csvExport}>
           <ExportIcon />
         </IconButton>
         <IconButton aria-label="import">

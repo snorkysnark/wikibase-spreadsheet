@@ -20,3 +20,15 @@ export class DefaultMap<K, V> extends Map<K, V> {
     return value;
   }
 }
+
+export function saveToFile(data: string, filename: string) {
+  const blob = new Blob([data], { type: "text/plain" });
+  const blobUrl = URL.createObjectURL(blob);
+
+  const tmpLink = document.createElement("a");
+  tmpLink.setAttribute("href", blobUrl);
+  tmpLink.setAttribute("download", filename);
+  tmpLink.click();
+
+  URL.revokeObjectURL(blobUrl);
+}

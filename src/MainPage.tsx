@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { styled } from "@mui/material/styles";
 
 import StructurePanel from "./structurepanel/StructurePanel";
 import { StructureSettings } from "./structure";
@@ -8,6 +7,11 @@ import { produce } from "immer";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
 import { LocalRow, loadTableFromQuery } from "./localTable";
 import ControlsBar from "./ControlsBar";
+import { ExportDialog } from "./ExportDialog";
+import { saveToFile } from "./util";
+import { writeToCsv } from "./csv";
+
+type DialogState = { type: "export" };
 
 export default function MainPage() {
   const [tableSettings, setTableSettings] = useLocalStorage<StructureSettings>(
@@ -52,6 +56,7 @@ export default function MainPage() {
   }, [tableSettings, currentTableIndex, queryResetter]);
 
   const hotRef = useRef<TableEditorHandle | null>(null);
+  const [dialogState, setDialogState] = useState<DialogState | null>(null);
 
   return (
     <>
@@ -69,6 +74,9 @@ export default function MainPage() {
           addRow={() => hotRef.current?.addDefaultRow()}
           deleteRow={() => hotRef.current?.toggleRowDeletion()}
           reload={() => resetQuery({})}
+          csvExport={() => {
+            setDialogState({ type: "export" });
+          }}
         />
         <div css={{ width: "100%", height: "100%", display: "flex" }}>
           <div css={{ flex: "1" }}>
@@ -137,6 +145,25 @@ export default function MainPage() {
           </div>
         </div>
       </div>
+
+      {dialogState?.type === "export" && (
+        <ExportDialog
+          onClose={() => setDialogState(null)}
+          onSubmit={(params) => {
+            if (!hotRef.current || !hotRef.current.table) return;
+            const tableName =
+              currentTableIndex !== null
+                ? tableSettings.tables[currentTableIndex].name
+                : "new-table";
+
+            const hot = hotRef.current.table;
+
+            writeToCsv(hot, params, (err, data) =>
+              saveToFile(data, `${tableName}.csv`)
+            );
+          }}
+        />
+      )}
     </>
   );
 }
