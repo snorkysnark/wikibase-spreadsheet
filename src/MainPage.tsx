@@ -1,43 +1,15 @@
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { LoginContext } from "./Login";
-import {
-  AppBar,
-  Button,
-  IconButton,
-  MenuItem,
-  Select,
-  Toolbar,
-} from "@mui/material";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { styled } from "@mui/material/styles";
-import {
-  Add as AddIcon,
-  Remove as RemoveIcon,
-  ArrowUpward as UploadIcon,
-  Cached as ReloadIcon,
-} from "@mui/icons-material";
+
 import StructurePanel from "./structurepanel/StructurePanel";
 import { StructureSettings } from "./structure";
 import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
-import { parse as parseCsv } from "csv-parse/browser/esm/sync";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
 import { LocalRow, loadTableFromQuery } from "./localTable";
-import { DEFAULT_CSV_MAP, applyCsv } from "./csv";
-
-const HiddenInput = styled("input")({
-  clip: "rect(0 0 0 0)",
-  clipPath: "inset(50%)",
-  height: 1,
-  overflow: "hidden",
-  position: "absolute",
-  bottom: 0,
-  left: 0,
-  whiteSpace: "nowrap",
-  width: 1,
-});
+import ControlsBar from "./ControlsBar";
 
 export default function MainPage() {
-  const { logout } = useContext(LoginContext);
   const [tableSettings, setTableSettings] = useLocalStorage<StructureSettings>(
     "table-structure",
     {
@@ -90,77 +62,14 @@ export default function MainPage() {
           flexDirection: "column",
         }}
       >
-        <AppBar
-          position="static"
-          sx={{
-            zIndex: (theme) => theme.zIndex.drawer + 1,
-            background: "lightblue",
-          }}
-        >
-          <Toolbar variant="dense">
-            <Select
-              variant="standard"
-              value={currentTableUuid || "new-table"}
-              onChange={(event) =>
-                setCurrentTableUuid(
-                  event.target.value === "new-table" ? null : event.target.value
-                )
-              }
-            >
-              <MenuItem value="new-table">New Table</MenuItem>
-              {tableSettings.tables.map((table) => (
-                <MenuItem key={table.uuid} value={table.uuid}>
-                  {table.name}
-                </MenuItem>
-              ))}
-            </Select>
-            <IconButton
-              aria-label="add row"
-              onClick={() => hotRef.current?.addDefaultRow()}
-            >
-              <AddIcon />
-            </IconButton>
-            <IconButton
-              aria-label="delete row"
-              onClick={() => hotRef.current?.toggleRowDeletion()}
-            >
-              <RemoveIcon />
-            </IconButton>
-            <IconButton aria-label="upload">
-              <UploadIcon />
-            </IconButton>
-            <IconButton aria-label="reload" onClick={() => resetQuery({})}>
-              <ReloadIcon />
-            </IconButton>
-            <Button component="label">
-              CSV
-              <HiddenInput
-                type="file"
-                onChange={(event) => {
-                  if (event.target.files && hotRef.current) {
-                    const reader = new FileReader();
-                    reader.readAsText(event.target.files[0]);
-                    reader.onload = () => {
-                      const csv = parseCsv(reader.result as string, {
-                        columns: true,
-                      });
-                      event.target.value = "";
-
-                      applyCsv(hotRef.current!, csv, DEFAULT_CSV_MAP);
-                    };
-                  }
-                }}
-              />
-            </Button>
-            <Button onClick={() => hotRef.current?.table?.render()}>
-              render
-            </Button>
-            <div css={{ flex: "1" }} />
-            <Button variant="contained" onClick={logout}>
-              Logout
-            </Button>
-          </Toolbar>
-        </AppBar>
+        <ControlsBar
+          currentTable={currentTableUuid}
+          setCurrentTable={setCurrentTableUuid}
+          tables={tableSettings.tables}
+          addRow={() => hotRef.current?.addDefaultRow()}
+          deleteRow={() => hotRef.current?.toggleRowDeletion()}
+          reload={() => resetQuery({})}
+        />
         <div css={{ width: "100%", height: "100%", display: "flex" }}>
           <div css={{ flex: "1" }}>
             {currentTableIndex !== null && localTable && (
