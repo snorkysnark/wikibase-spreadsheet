@@ -7,11 +7,10 @@ import { produce } from "immer";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
 import { LocalRow, loadTableFromQuery } from "./localTable";
 import ControlsBar from "./ControlsBar";
-import { ExportDialog } from "./ExportDialog";
 import { saveToFile } from "./util";
-import { writeToCsv } from "./csv";
+import { ExportDialog, ImportDialog, writeToCsv } from "./csv";
 
-type DialogState = { type: "export" };
+type DialogState = { type: "export" } | { type: "import" };
 
 export default function MainPage() {
   const [tableSettings, setTableSettings] = useLocalStorage<StructureSettings>(
@@ -74,9 +73,8 @@ export default function MainPage() {
           addRow={() => hotRef.current?.addDefaultRow()}
           deleteRow={() => hotRef.current?.toggleRowDeletion()}
           reload={() => resetQuery({})}
-          csvExport={() => {
-            setDialogState({ type: "export" });
-          }}
+          csvExport={() => setDialogState({ type: "export" })}
+          csvImport={() => setDialogState({ type: "import" })}
         />
         <div css={{ width: "100%", height: "100%", display: "flex" }}>
           <div css={{ flex: "1" }}>
@@ -157,12 +155,15 @@ export default function MainPage() {
                 : "new-table";
 
             const hot = hotRef.current.table;
-
             writeToCsv(hot, params, (err, data) =>
               saveToFile(data, `${tableName}.csv`)
             );
           }}
         />
+      )}
+
+      {dialogState?.type === "import" && (
+        <ImportDialog onClose={() => setDialogState(null)} />
       )}
     </>
   );

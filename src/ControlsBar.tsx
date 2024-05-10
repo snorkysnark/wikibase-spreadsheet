@@ -26,14 +26,16 @@ export default function ControlsBar({
   deleteRow,
   reload,
   csvExport,
+  csvImport,
 }: {
   currentTable: string | null;
   setCurrentTable: (value: string | null) => void;
   tables: TableStructure<string>[];
-  addRow: () => void;
-  deleteRow: () => void;
-  reload: () => void;
-  csvExport: () => void;
+  addRow(): void;
+  deleteRow(): void;
+  reload(): void;
+  csvExport(): void;
+  csvImport(): void;
 }) {
   const { logout } = useContext(LoginContext);
 
@@ -78,7 +80,7 @@ export default function ControlsBar({
         <IconButton aria-label="export" onClick={csvExport}>
           <ExportIcon />
         </IconButton>
-        <IconButton aria-label="import">
+        <IconButton aria-label="import" onClick={csvImport}>
           <ImportIcon />
         </IconButton>
         <Button variant="contained" onClick={logout}>

@@ -4,14 +4,11 @@ import {
   DialogTitle,
   Button,
   DialogContent,
-  TextField,
-  RadioGroup,
   FormControlLabel,
-  Radio,
   Checkbox,
-  FormHelperText,
 } from "@mui/material";
-import { FormEvent, useState } from "react";
+import { FormEvent } from "react";
+import { DelimiterMenu } from "./DelimiterMenu";
 
 export interface ExportParameters {
   delimiter: string;
@@ -26,8 +23,6 @@ export function ExportDialog({
   onClose(): void;
   onSubmit(params: ExportParameters): void;
 }) {
-  const [delimiterOption, setDelimiterOption] = useState(",");
-
   return (
     <Dialog
       open={true}
@@ -41,15 +36,11 @@ export function ExportDialog({
             new FormData(event.currentTarget).entries()
           ) as {
             delimiter: string;
-            customDelimiter?: string;
             headerRow?: string;
             itemIds?: string;
           };
           onSubmit({
-            delimiter:
-              formData.delimiter === "other"
-                ? formData.customDelimiter!
-                : formData.delimiter,
+            delimiter: formData.delimiter,
             headerRow: !!formData.headerRow,
             itemIds: !!formData.itemIds,
           });
@@ -58,20 +49,7 @@ export function ExportDialog({
     >
       <DialogTitle>Export CSV</DialogTitle>
       <DialogContent>
-        <FormHelperText>Delimiter</FormHelperText>
-        <RadioGroup
-          row
-          name="delimiter"
-          value={delimiterOption}
-          onChange={(event) => setDelimiterOption(event.target.value)}
-        >
-          <FormControlLabel control={<Radio />} label="Comma" value="," />
-          <FormControlLabel control={<Radio />} label="Tab" value={"\t"} />
-          <FormControlLabel control={<Radio />} label="Other" value="other" />
-        </RadioGroup>
-        {delimiterOption === "other" && (
-          <TextField name="customDelimiter" sx={{ display: "block" }} />
-        )}
+        <DelimiterMenu />
         <FormControlLabel
           name="headerRow"
           control={<Checkbox defaultChecked />}
