@@ -27,7 +27,7 @@ function buildItemQuery(desc: SparqlQueryDesc) {
       bd:serviceParam wikibase:language "en".
       ?item rdfs:label ?label .
     }
-  }`;
+  } ORDER BY ?item`;
 }
 
 export interface LocalRow {
@@ -60,29 +60,40 @@ function itemIdFromUri(uri: string): number {
 export async function loadTableFromQuery(
   desc: SparqlQueryDesc
 ): Promise<LocalRow[]> {
-  return sparqlQuery(buildItemQuery(desc)).then((json) => {
-    const properties = json.head.vars.filter((name) => name.startsWith("P"));
+  const responseJson = await sparqlQuery(buildItemQuery(desc));
+  const properties = responseJson.head.vars.filter((name) =>
+    name.startsWith("P")
+  );
 
-    const rows = json.results.bindings.map((binding) => ({
-      itemId: itemIdFromUri(binding.item.value),
-      label: { value: binding.label.value },
-      properties: Object.fromEntries(
-        properties.map((propertyId) => {
-          const propertyObject = binding[propertyId];
+  const rows: LocalRow[] = [];
+  let lastItemUri: string | null = null;
 
-          return [
-            propertyId,
-            propertyObject
-              ? {
-                  guid: lastUriPart(binding["id" + propertyId].value),
-                  value: propertyObject.value,
-                }
-              : { guid: null, value: null },
-          ];
-        })
-      ),
-    }));
+  for (const binding of responseJson.results.bindings) {
+    // Skip duplicates (results are already sorted by ?item)
+    if (binding.item.value !== lastItemUri) {
+      rows.push({
+        itemId: itemIdFromUri(binding.item.value),
+        label: { value: binding.label.value },
+        properties: Object.fromEntries(
+          properties.map((propertyId) => {
+            const propertyObject = binding[propertyId];
 
-    return rows;
-  });
+            return [
+              propertyId,
+              propertyObject
+                ? {
+                    guid: lastUriPart(binding["id" + propertyId].value),
+                    value: propertyObject.value,
+                  }
+                : { guid: null, value: null },
+            ];
+          })
+        ),
+      });
+    }
+
+    lastItemUri = binding.item.value;
+  }
+
+  return rows;
 }
