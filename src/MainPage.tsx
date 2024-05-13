@@ -9,6 +9,7 @@ import { LocalRow, loadTableFromQuery } from "./localTable";
 import ControlsBar from "./ControlsBar";
 import { saveToFile } from "./util";
 import { ExportDialog, ImportDialog, writeToCsv } from "./csv";
+import { useAsync } from "@react-hookz/web";
 
 type DialogState = { type: "export" } | { type: "import" };
 
@@ -30,29 +31,21 @@ export default function MainPage() {
     return index >= 0 ? index : null;
   }, [tableSettings, currentTableUuid]);
 
-  const [localTable, setLocalTable] = useState<LocalRow[] | null>(null);
-  const [queryResetter, resetQuery] = useState({});
+  const [tableQuery, queryAction] = useAsync<LocalRow[] | null>(async () => {
+    if (!tableSettings.isInstanceProperty || currentTableIndex === null)
+      return null;
+
+    return loadTableFromQuery({
+      isInstanceProp: tableSettings.isInstanceProperty,
+      parent: tableSettings.tables[currentTableIndex].parentItem,
+      properties: tableSettings.tables[currentTableIndex].fields.map(
+        (field) => field.property
+      ),
+    });
+  }, null);
   useEffect(() => {
-    if (tableSettings.isInstanceProperty && currentTableIndex !== null) {
-      let valid = true;
-
-      loadTableFromQuery({
-        isInstanceProp: tableSettings.isInstanceProperty,
-        parent: tableSettings.tables[currentTableIndex].parentItem,
-        properties: tableSettings.tables[currentTableIndex].fields.map(
-          (field) => field.property
-        ),
-      }).then((data) => {
-        if (valid) setLocalTable(data);
-      });
-
-      return () => {
-        valid = false;
-      };
-    } else {
-      setLocalTable(null);
-    }
-  }, [tableSettings, currentTableIndex, queryResetter]);
+    queryAction.execute();
+  }, [tableSettings, currentTableIndex]);
 
   const hotRef = useRef<TableEditorHandle | null>(null);
   const [dialogState, setDialogState] = useState<DialogState | null>(null);
@@ -72,16 +65,16 @@ export default function MainPage() {
           tables={tableSettings.tables}
           addRow={() => hotRef.current?.addDefaultRow()}
           deleteRow={() => hotRef.current?.toggleRowDeletion()}
-          reload={() => resetQuery({})}
+          reload={() => queryAction.execute()}
           csvExport={() => setDialogState({ type: "export" })}
           csvImport={() => setDialogState({ type: "import" })}
         />
         <div css={{ width: "100%", height: "100%", display: "flex" }}>
           <div css={{ flex: "1" }}>
-            {currentTableIndex !== null && localTable && (
+            {currentTableIndex !== null && tableQuery.result && (
               <TableEditor
                 ref={hotRef}
-                data={localTable}
+                data={tableQuery.result}
                 tableStructure={tableSettings.tables[currentTableIndex]}
               />
             )}
@@ -162,8 +155,11 @@ export default function MainPage() {
         />
       )}
 
-      {dialogState?.type === "import" && (
-        <ImportDialog onClose={() => setDialogState(null)} />
+      {dialogState?.type === "import" && currentTableIndex !== null && (
+        <ImportDialog
+          onClose={() => setDialogState(null)}
+          tableStructure={tableSettings.tables[currentTableIndex]}
+        />
       )}
     </>
   );
