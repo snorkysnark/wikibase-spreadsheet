@@ -1,17 +1,38 @@
 import {
+  Autocomplete,
   Button,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  TextField,
+  ToggleButton,
 } from "@mui/material";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
+import {
+  AttachFile as AttachFileIcon,
+  Key as KeyIcon,
+  Settings as IconGear,
+} from "@mui/icons-material";
 import { MuiFileInput } from "mui-file-input";
-import { useEffect, useState } from "react";
-import { parse as parseCsv } from "csv-parse/browser/esm/sync";
+import { useEffect, useMemo, useState } from "react";
 import { DelimiterMenu, DelimiterState } from "./DelimiterMenu";
 import { TableStructure } from "src/structure";
-import { useAsync } from "@react-hookz/web";
+import { useCsvHeaders } from "./hooks";
+import { produce } from "immer";
+
+interface CsvField {
+  isKey: boolean;
+  hotName: string;
+  hotMapping: HotField | null;
+}
+
+type HotFieldKind = "special" | "property";
+
+interface HotField {
+  name: string;
+  propPath: string;
+  kind: HotFieldKind;
+}
 
 export function ImportDialog({
   onClose,
@@ -26,30 +47,32 @@ export function ImportDialog({
     custom: false,
   });
 
-  const [{ result: headers }, headerAction] = useAsync<
-    string[] | null,
-    [File | null, string]
-  >(async (file: File | null, delimiter: string) => {
-    if (!file) return null;
-
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.readAsText(file);
-      reader.onload = () => {
-        const csv = reader.result as string;
-        const firstLineEnd = csv.indexOf("\n");
-        resolve(
-          parseCsv(
-            csv.substring(0, firstLineEnd >= 0 ? firstLineEnd : undefined),
-            { delimiter: delimiter }
-          )[0]
-        );
-      };
-    });
-  }, null);
+  const headers = useCsvHeaders(file, delimiterState.delimiter);
+  const [csvFields, setCsvFields] = useState<CsvField[] | null>(null);
   useEffect(() => {
-    headerAction.execute(file, delimiterState.delimiter);
-  }, [file, delimiterState.delimiter]);
+    setCsvFields(
+      headers
+        ? headers.map((header) => ({
+            isKey: false,
+            hotName: header,
+            hotMapping: null,
+          }))
+        : null
+    );
+  }, [headers]);
+
+  const hotFields = useMemo<HotField[]>(
+    () => [
+      { name: "itemID", propPath: "itemID", kind: "special" },
+      { name: "label", propPath: "label.value", kind: "special" },
+      ...tableStructure.fields.map<HotField>((field) => ({
+        name: field.name,
+        propPath: `properties.${field.property}.value`,
+        kind: "property",
+      })),
+    ],
+    [tableStructure]
+  );
 
   return (
     <Dialog open={true} onClose={onClose}>
@@ -65,9 +88,45 @@ export function ImportDialog({
             startAdornment: <AttachFileIcon />,
           }}
         />
-        <ul>
-          {headers && headers.map((header, i) => <li key={i}>{header}</li>)}
-        </ul>
+        <table>
+          <tbody>
+            {csvFields &&
+              csvFields.map((csvField, i) => (
+                <tr key={i}>
+                  <td>
+                    <ToggleButton
+                      sx={{ padding: 0, width: "40px", height: "40px" }}
+                      value="isKey"
+                      selected={csvField.isKey}
+                      onChange={() => {
+                        setCsvFields(
+                          produce((fields) => {
+                            fields![i].isKey = !fields![i].isKey;
+                          })
+                        );
+                      }}
+                    >
+                      {csvField.isKey && <KeyIcon />}
+                    </ToggleButton>
+                  </td>
+                  <td>{csvField.hotName}</td>
+                  <td css={{ width: "100%" }}>
+                    <Autocomplete
+                      options={hotFields}
+                      getOptionLabel={(field) => field.name}
+                      renderInput={(params) => <TextField {...params} />}
+                      renderOption={(props, option) => (
+                        <li {...props}>
+                          {option.kind === "special" && <IconGear />}
+                          {option.name}
+                        </li>
+                      )}
+                    />
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
       </DialogContent>
       <DialogActions>
         <Button>Merge</Button>
