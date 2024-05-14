@@ -59,32 +59,3 @@ export function useList<T>(initialState: T[]): [
     },
   ];
 }
-
-export function useLocalStorage<T>(
-  key: string,
-  initialValue: T
-): [T, Dispatch<SetStateAction<T>>] {
-  const [state, setState] = useState(initialValue);
-
-  useEffect(() => {
-    const storedValue = localStorage.getItem(key);
-    if (storedValue) {
-      setState(JSON.parse(storedValue));
-    } else {
-      localStorage.setItem(key, JSON.stringify(initialValue));
-    }
-  }, []);
-
-  const setStateAndSave = useCallback(
-    (value: SetStateAction<T>) => {
-      const newState: T =
-        typeof value === "function" ? (value as Function)(state) : value;
-
-      localStorage.setItem(key, JSON.stringify(newState));
-      setState(newState);
-    },
-    [key, state]
-  );
-
-  return [state, setStateAndSave];
-}

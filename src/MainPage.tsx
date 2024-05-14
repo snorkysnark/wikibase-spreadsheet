@@ -2,23 +2,25 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import StructurePanel from "./structurepanel/StructurePanel";
 import { StructureSettings } from "./structure";
-import { useLocalStorage } from "src/hooks";
 import { produce } from "immer";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
 import { LocalRow, loadTableFromQuery } from "./localTable";
 import ControlsBar from "./ControlsBar";
 import { saveToFile } from "./util";
 import { ExportDialog, ImportDialog, writeToCsv } from "./csv";
-import { useAsync } from "@react-hookz/web";
+import { useAsync, useLocalStorageValue } from "@react-hookz/web";
 
 type DialogState = { type: "export" } | { type: "import" };
 
 export default function MainPage() {
-  const [tableSettings, setTableSettings] = useLocalStorage<StructureSettings>(
+  const { value: tableSettings, set: setTableSettings } = useLocalStorageValue(
     "table-structure",
     {
-      isInstanceProperty: null,
-      tables: [],
+      defaultValue: {
+        isInstanceProperty: null,
+        tables: [],
+      } as StructureSettings,
+      initializeWithValue: true,
     }
   );
 
