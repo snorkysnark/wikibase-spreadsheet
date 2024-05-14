@@ -9,7 +9,7 @@ import {
 import { TableStructure } from "./structure";
 import Handsontable from "handsontable";
 import { CellMeta, CellProperties } from "node_modules/handsontable/settings";
-import { nonNullish } from "./util";
+import { nonNullish, unique } from "./util";
 import { LocalRow } from "./localTable";
 
 export interface TableEditorHandle {
@@ -53,51 +53,16 @@ function extendCellSettings(
   return { className: undefined, readOnly: false };
 }
 
-function updateRowProp(
-  hot: Handsontable,
-  row: number,
-  column: number,
-  prevValue: any,
-  nextValue: any
-) {
-  const originalValue = hot.getCellMeta(row, column).originalValue;
-
-  hot.setDataAtCell(row, column, nextValue, "auto");
-  hot.setCellMeta(row, column, "originalValue", originalValue ?? prevValue);
-}
-
-type PropFilter = [prop: string, value: any];
-
-function rowMatchesFilters(
-  hot: Handsontable,
-  row: number,
-  filters: PropFilter[]
-): boolean {
-  for (const [prop, value] of filters) {
-    if (hot.getDataAtRowProp(row, prop) !== value) return false;
-  }
-  return true;
-}
-
-function getSelectedItems(
-  hot: Handsontable
-): [itemIds: Set<number>, newRows: Set<number>] {
-  const itemIds = new Set<number>();
-  const newRows = new Set<number>();
+function getSelectedRows(hot: Handsontable): number[] {
+  const rows: number[] = [];
 
   hot.getSelectedRange()?.forEach((range) => {
     for (let row = range.from.row; row <= range.to.row; row++) {
-      const itemId = hot.getDataAtRowProp(row, "itemId");
-
-      if (itemId !== null) {
-        itemIds.add(itemId);
-      } else {
-        newRows.add(row);
-      }
+      rows.push(row);
     }
   });
 
-  return [itemIds, newRows];
+  return unique(rows.sort((a, b) => a - b));
 }
 
 function resetRowToOriginalValue(hot: Handsontable, row: number) {
@@ -123,7 +88,7 @@ const TableEditor = forwardRef(function TableEditor(
   const container = useRef<HTMLDivElement | null>(null);
   const hotRef = useRef<Handsontable | null>(null);
 
-  const itemsForDeleteion = useRef(new Set<number>());
+  const itemsForDeletion = useRef(new Set<number>());
 
   const colSettings = useMemo<ColumnSettings[]>(
     () => [
@@ -137,7 +102,7 @@ const TableEditor = forwardRef(function TableEditor(
   );
 
   useEffect(() => {
-    itemsForDeleteion.current.clear();
+    itemsForDeletion.current.clear();
 
     const hot = new Handsontable(container.current!, {
       colHeaders: [...colSettings.map((col) => col.name)],
@@ -167,7 +132,7 @@ const TableEditor = forwardRef(function TableEditor(
           this,
           row,
           column,
-          itemsForDeleteion.current
+          itemsForDeletion.current
         );
       },
       beforeChange(changes, source) {
@@ -177,24 +142,15 @@ const TableEditor = forwardRef(function TableEditor(
           nonNullish
         ) as CellChangeString[]) {
           const column = hot.propToCol(prop) as number;
+          const originalValue = hot.getCellMeta(row, column).originalValue;
 
-          const itemId: number | null = hot.getDataAtRowProp(row, "itemId");
-          if (itemId === null) {
-            updateRowProp(hot, row, column, nextValue, prevValue);
-          } else {
-            const filters: PropFilter[] = [["itemId", itemId]];
-            if (prop.startsWith("properties.")) {
-              const guidProp = prop.replace(/\.value$/, ".guid");
-              filters.push([guidProp, hot.getDataAtRowProp(row, guidProp)]);
-            }
-
-            const rowCount = hot.countRows();
-            for (let row = 0; row < rowCount; row++) {
-              if (rowMatchesFilters(hot, row, filters)) {
-                updateRowProp(hot, row, column, prevValue, nextValue);
-              }
-            }
-          }
+          hot.setDataAtCell(row, column, nextValue, "auto");
+          hot.setCellMeta(
+            row,
+            column,
+            "originalValue",
+            originalValue ?? prevValue
+          );
         }
       },
     });
@@ -208,7 +164,7 @@ const TableEditor = forwardRef(function TableEditor(
   }, [colSettings]);
 
   useEffect(() => {
-    itemsForDeleteion.current.clear();
+    itemsForDeletion.current.clear();
 
     if (hotRef.current) {
       hotRef.current.loadData(data);
@@ -231,26 +187,24 @@ const TableEditor = forwardRef(function TableEditor(
     toggleRowDeletion() {
       const hot = hotRef.current;
       if (hot) {
-        const [itemIds, newRows] = getSelectedItems(hot);
+        const selectedRows = getSelectedRows(hot);
 
-        // Remove in reversed order
-        for (const row of [...newRows].sort((a, b) => b - a)) {
-          hot.alter("remove_row", row);
-        }
+        // Iterate in reverse order
+        for (let i = selectedRows.length - 1; i >= 0; i--) {
+          const row = selectedRows[i];
+          const itemId: number | null = hot.getDataAtRowProp(row, "itemId");
 
-        // Mark for deletion
-        for (const itemId of itemIds) {
-          if (itemsForDeleteion.current.has(itemId)) {
-            itemsForDeleteion.current.delete(itemId);
+          if (itemId === null) {
+            // New row
+            hot.alter("remove_row", row);
           } else {
-            itemsForDeleteion.current.add(itemId);
-          }
-        }
-        for (let row = 0; row < hot.countRows(); row++) {
-          if (
-            itemsForDeleteion.current.has(hot.getDataAtRowProp(row, "itemId"))
-          ) {
-            resetRowToOriginalValue(hot, row);
+            // Existing row, mark for deletion
+            if (itemsForDeletion.current.has(itemId)) {
+              itemsForDeletion.current.delete(itemId);
+            } else {
+              itemsForDeletion.current.add(itemId);
+              resetRowToOriginalValue(hot, row);
+            }
           }
         }
 
