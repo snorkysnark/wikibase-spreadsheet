@@ -1,21 +1,25 @@
 export interface StructureSettings {
   isInstanceProperty: string | null;
-  tables: TableStructure<string>[];
+  tables: TableStructure[];
 }
 
-export interface TableStructurePartial<WikidataID> {
+type MaybeNull<T, AllowNull extends boolean> = AllowNull extends true
+  ? T | null
+  : T;
+
+export interface TableStructurePartial<AllowNull extends boolean = false> {
   name: string;
-  parentItem: WikidataID;
-  fields: TableField<WikidataID>[];
+  parentItem: MaybeNull<string, AllowNull>;
+  fields: TableField<AllowNull>[];
 }
 
-export interface TableStructure<WikidataID>
-  extends TableStructurePartial<WikidataID> {
+export interface TableStructure<AllowNull extends boolean = false>
+  extends TableStructurePartial<AllowNull> {
   uuid: string;
 }
 
-export interface TableField<WikidataID> {
+export interface TableField<AllowNull extends boolean = false> {
   uuid: string;
-  property: WikidataID;
+  property: MaybeNull<string, AllowNull>;
   name: string;
 }

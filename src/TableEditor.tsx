@@ -81,7 +81,7 @@ const TableEditor = forwardRef(function TableEditor(
     tableStructure,
   }: {
     data: LocalRow[];
-    tableStructure: TableStructure<string>;
+    tableStructure: TableStructure;
   },
   ref: ForwardedRef<TableEditorHandle>
 ) {

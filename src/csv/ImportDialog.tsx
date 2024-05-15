@@ -39,7 +39,7 @@ export function ImportDialog({
   tableStructure,
 }: {
   onClose(): void;
-  tableStructure: TableStructure<string>;
+  tableStructure: TableStructure;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [delimiterState, setDelimiterState] = useState<DelimiterState>({

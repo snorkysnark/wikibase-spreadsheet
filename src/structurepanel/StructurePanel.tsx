@@ -79,8 +79,8 @@ function EditTableField({
   onUpdate,
   onClickMenu,
 }: {
-  field: TableField<string | null>;
-  onUpdate: (field: TableField<string | null>) => void;
+  field: TableField<boolean>;
+  onUpdate: (field: TableField<boolean>) => void;
   onClickMenu: MouseEventHandler<HTMLButtonElement>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -130,15 +130,15 @@ export default function StructurePanel(props: {
   isInstanceProperty: string | null;
   onChangeInstanceProperty: (value: string | null) => void;
   existing?: boolean;
-  tableStructure: TableStructure<string> | null;
-  onChangeStucture: (tableStructure: TableStructurePartial<string>) => void;
+  tableStructure: TableStructure | null;
+  onChangeStucture: (tableStructure: TableStructurePartial) => void;
   onDelete: () => void;
 }) {
   const [parentInfo, setParentInfo] = useState<NamedItemValue>({
     item: null,
     name: "",
   });
-  const [fields, fieldsControl] = useList<TableField<string | null>>([]);
+  const [fields, fieldsControl] = useList<TableField<boolean>>([]);
   const getFieldNameAt = useCallback(
     (index: FieldIndex) => {
       return index === "table" ? parentInfo.name : fields[index].name;
@@ -331,7 +331,7 @@ export default function StructurePanel(props: {
             props.onChangeStucture({
               name: parentInfo.name,
               parentItem: parentInfo.item!,
-              fields: fields as TableField<string>[],
+              fields,
             })
           }
         >

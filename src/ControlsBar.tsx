@@ -30,7 +30,7 @@ export default function ControlsBar({
 }: {
   currentTable: string | null;
   setCurrentTable: (value: string | null) => void;
-  tables: TableStructure<string>[];
+  tables: TableStructure[];
   addRow(): void;
   deleteRow(): void;
   reload(): void;
