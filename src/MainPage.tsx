@@ -1,53 +1,24 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
-import StructurePanel from "./structurepanel/StructurePanel";
-import { StructureSettings } from "./structure";
-import { produce } from "immer";
-import TableEditor, { TableEditorHandle } from "./TableEditor";
-import { LocalRow, loadTableFromQuery } from "./localTable";
+import { useSettings, map } from "./structure";
+import { TableEditorHandle } from "./TableEditor";
 import ControlsBar from "./ControlsBar";
-import { saveToFile } from "./util";
-import { ExportDialog, ImportDialog, writeToCsv } from "./csv";
-import { useAsync, useLocalStorageValue } from "@react-hookz/web";
+import StructurePanel from "./structurepanel/StructurePanel";
+import { produce } from "immer";
 
 type DialogState = { type: "export" } | { type: "import" };
 
 export default function MainPage() {
-  const { value: tableSettings, set: setTableSettings } = useLocalStorageValue(
-    "table-structure",
-    {
-      defaultValue: {
-        isInstanceProperty: null,
-        tables: [],
-      } as StructureSettings,
-      initializeWithValue: true,
-    }
-  );
+  const [settings, alterSettings] = useSettings();
 
   const [currentTableUuid, setCurrentTableUuid] = useState<string | null>(null);
-  const currentTableIndex = useMemo<number | null>(() => {
-    if (!currentTableUuid) return null;
-    const index = tableSettings.tables.findIndex(
-      (table) => table.uuid === currentTableUuid
-    );
-    return index >= 0 ? index : null;
-  }, [tableSettings, currentTableUuid]);
-
-  const [tableQuery, queryAction] = useAsync<LocalRow[] | null>(async () => {
-    if (!tableSettings.isInstanceProperty || currentTableIndex === null)
-      return null;
-
-    return loadTableFromQuery({
-      isInstanceProp: tableSettings.isInstanceProperty,
-      parent: tableSettings.tables[currentTableIndex].parentItem,
-      properties: tableSettings.tables[currentTableIndex].fields.map(
-        (field) => field.property
-      ),
-    });
-  }, null);
-  useEffect(() => {
-    queryAction.execute();
-  }, [tableSettings, currentTableIndex]);
+  const currentTable = useMemo(
+    () =>
+      currentTableUuid
+        ? settings.tables.byUuid[currentTableUuid].definition
+        : null,
+    [settings.tables, currentTableUuid]
+  );
 
   const hotRef = useRef<TableEditorHandle | null>(null);
   const [dialogState, setDialogState] = useState<DialogState | null>(null);
@@ -64,23 +35,15 @@ export default function MainPage() {
         <ControlsBar
           currentTable={currentTableUuid}
           setCurrentTable={setCurrentTableUuid}
-          tables={tableSettings.tables}
+          tables={map(settings.tables, (table) => table.definition)}
           addRow={() => hotRef.current?.addDefaultRow()}
           deleteRow={() => hotRef.current?.toggleRowDeletion()}
-          reload={() => queryAction.execute()}
+          reload={() => {}}
           csvExport={() => setDialogState({ type: "export" })}
           csvImport={() => setDialogState({ type: "import" })}
         />
         <div css={{ width: "100%", height: "100%", display: "flex" }}>
-          <div css={{ flex: "1" }}>
-            {currentTableIndex !== null && tableQuery.result && (
-              <TableEditor
-                ref={hotRef}
-                data={tableQuery.result}
-                tableStructure={tableSettings.tables[currentTableIndex]}
-              />
-            )}
-          </div>
+          <div css={{ flex: "1" }}></div>
           <div
             css={{
               width: "30%",
@@ -88,81 +51,26 @@ export default function MainPage() {
             }}
           >
             <StructurePanel
-              isInstanceProperty={tableSettings.isInstanceProperty}
-              onChangeInstanceProperty={(isInstanceProperty) =>
-                setTableSettings(
-                  produce((settings) => {
-                    settings.isInstanceProperty = isInstanceProperty;
-                  })
-                )
-              }
-              existing={currentTableIndex !== null}
-              tableStructure={
-                currentTableIndex !== null
-                  ? tableSettings.tables[currentTableIndex]
-                  : null
-              }
-              onChangeStucture={(value) => {
-                if (currentTableIndex !== null) {
-                  // Existing table
-                  setTableSettings(
-                    produce((settings) => {
-                      const { uuid } = settings.tables[currentTableIndex];
-                      settings.tables[currentTableIndex] = { uuid, ...value };
-                    })
-                  );
+              isInstanceProperty={settings.isInstanceProperty}
+              onChangeInstanceProperty={alterSettings.setInstanceProperty}
+              tableStructure={currentTable}
+              onChangeStucture={(data) => {
+                if (currentTableUuid) {
+                  alterSettings.alterTable(currentTableUuid, data);
                 } else {
-                  // New table
-                  const uuid = crypto.randomUUID();
-                  setTableSettings(
-                    produce((settings) => {
-                      settings.tables.push({ uuid, ...value });
-                    })
-                  );
-                  setCurrentTableUuid(uuid);
+                  setCurrentTableUuid(alterSettings.addTable(data));
                 }
               }}
               onDelete={() => {
                 if (currentTableUuid) {
                   setCurrentTableUuid(null);
-                  setTableSettings(
-                    produce((settings) => {
-                      settings.tables = settings.tables.filter(
-                        (table) => table.uuid !== currentTableUuid
-                      );
-                    })
-                  );
+                  alterSettings.deleteTable(currentTableUuid);
                 }
               }}
             />
           </div>
         </div>
       </div>
-
-      {dialogState?.type === "export" && (
-        <ExportDialog
-          onClose={() => setDialogState(null)}
-          onSubmit={(params) => {
-            if (!hotRef.current || !hotRef.current.table) return;
-            const tableName =
-              currentTableIndex !== null
-                ? tableSettings.tables[currentTableIndex].name
-                : "new-table";
-
-            const hot = hotRef.current.table;
-            writeToCsv(hot, params, (err, data) =>
-              saveToFile(data, `${tableName}.csv`)
-            );
-          }}
-        />
-      )}
-
-      {dialogState?.type === "import" && currentTableIndex !== null && (
-        <ImportDialog
-          onClose={() => setDialogState(null)}
-          tableStructure={tableSettings.tables[currentTableIndex]}
-        />
-      )}
     </>
   );
 }

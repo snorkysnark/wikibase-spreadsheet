@@ -1,25 +1,122 @@
+import { useLocalStorageValue } from "@react-hookz/web";
+import hyperid from "hyperid";
+import { produce } from "immer";
+import { useMemo } from "react";
+
+export function map<T, U>(
+  m: OrderedMap<T>,
+  callbackfn: (value: T, index: number) => U
+): U[] {
+  return m.order.map((uuid, index) => callbackfn(m.byUuid[uuid], index));
+}
+
+export interface OrderedMap<T> {
+  order: string[];
+  byUuid: { [uuid: string]: T };
+}
+
 export interface StructureSettings {
   isInstanceProperty: string | null;
-  tables: TableStructure[];
+  tables: OrderedMap<{
+    definition: TableStructure;
+    csvMappings: OrderedMap<CsvMapping>;
+  }>;
 }
 
-type MaybeNull<T, AllowNull extends boolean> = AllowNull extends true
-  ? T | null
-  : T;
-
-export interface TableStructurePartial<AllowNull extends boolean = false> {
+export interface TableStructurePartial {
   name: string;
-  parentItem: MaybeNull<string, AllowNull>;
-  fields: TableField<AllowNull>[];
+  parentItem: string;
+  fields: OrderedMap<TableField>;
 }
 
-export interface TableStructure<AllowNull extends boolean = false>
-  extends TableStructurePartial<AllowNull> {
+export interface TableStructure extends TableStructurePartial {
   uuid: string;
 }
 
-export interface TableField<AllowNull extends boolean = false> {
+interface CsvMapping {
   uuid: string;
-  property: MaybeNull<string, AllowNull>;
   name: string;
+  pairs: [fieldUuid: string, csvField: string][];
+}
+
+export interface TableField {
+  uuid: string;
+  name: string;
+  property: Property;
+}
+
+export type Property =
+  | {
+      kind: "property";
+      identifier: string;
+    }
+  | {
+      kind: "special";
+      identifier: "label" | "description";
+    };
+
+export interface SettingsActions {
+  setInstanceProperty(value: string | null): void;
+  addTable(data: TableStructurePartial): string;
+  alterTable(uuid: string, data: TableStructurePartial): void;
+  deleteTable(uuid: string): void;
+}
+
+export function useSettings(): [StructureSettings, SettingsActions] {
+  const makeId = useMemo(() => hyperid(), []);
+
+  const { value, set } = useLocalStorageValue("table-structure", {
+    defaultValue: {
+      isInstanceProperty: null,
+      tables: { order: [], byUuid: {} },
+    } as StructureSettings,
+    initializeWithValue: true,
+  });
+
+  const actions = useMemo(
+    () => ({
+      setInstanceProperty(value: string | null) {
+        set(
+          produce((settings) => {
+            settings.isInstanceProperty = value;
+          })
+        );
+      },
+      addTable(data: TableStructurePartial) {
+        const uuid = makeId();
+
+        set(
+          produce((settings) => {
+            settings.tables.byUuid[uuid] = {
+              definition: { uuid, ...data },
+              csvMappings: { order: [], byUuid: {} },
+            };
+            settings.tables.order.push(uuid);
+          })
+        );
+
+        return uuid;
+      },
+      alterTable(uuid: string, data: TableStructurePartial) {
+        set(
+          produce((settings) => {
+            settings.tables.byUuid[uuid].definition = { uuid, ...data };
+          })
+        );
+      },
+      deleteTable(uuid: string) {
+        set(
+          produce((settings) => {
+            settings.tables.order = settings.tables.order.filter(
+              (other) => other !== uuid
+            );
+            delete settings.tables.byUuid[uuid];
+          })
+        );
+      },
+    }),
+    []
+  );
+
+  return [value, actions];
 }

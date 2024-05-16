@@ -22,6 +22,7 @@
         "@react-hookz/web": "^24.0.4",
         "csv": "^6.3.8",
         "handsontable": "^14.1.0",
+        "hyperid": "^3.2.0",
         "immer": "^10.0.4",
         "mui-file-input": "^4.0.4",
         "react": "^18.2.0",
