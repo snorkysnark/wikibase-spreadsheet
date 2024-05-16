@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { EntityType } from "src/wikibase";
-import ItemSearch from "./ItemSearch";
+import { EntitySearch, HasId } from "./EntitySearch";
 import { TextField } from "@mui/material";
 
 export interface NamedItemValue {
@@ -12,22 +12,24 @@ export function NamedItem(props: {
   type: EntityType;
   value: NamedItemValue;
   onChange(value: NamedItemValue): void;
+  extraOptions?: HasId[];
 }) {
   const textFieldRef = useRef<HTMLDivElement>(null);
 
   return (
     <div css={{ display: "flex", paddingTop: "0.5em", flex: "1" }}>
-      <ItemSearch
+      <EntitySearch
         sx={{ width: "10em" }}
         type={props.type}
+        extraOptions={props.extraOptions}
         popperWidth={(width) =>
           width + (textFieldRef.current?.clientWidth || 0)
         }
         value={props.value.item}
         onChange={(item) =>
           props.onChange({
-            item: item && item.id,
-            name: item?.label ?? item?.id ?? props.value.name,
+            item: item && item.data.id,
+            name: item?.data.label ?? item?.data.id ?? props.value.name,
           })
         }
       />

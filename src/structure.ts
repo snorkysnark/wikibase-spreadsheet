@@ -42,18 +42,8 @@ interface CsvMapping {
 export interface TableField {
   uuid: string;
   name: string;
-  property: Property;
+  property: string;
 }
-
-export type Property =
-  | {
-      kind: "property";
-      identifier: string;
-    }
-  | {
-      kind: "special";
-      identifier: "label" | "description";
-    };
 
 export interface SettingsActions {
   setInstanceProperty(value: string | null): void;
