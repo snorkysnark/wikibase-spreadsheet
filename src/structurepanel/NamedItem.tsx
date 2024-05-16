@@ -19,7 +19,7 @@ export function NamedItem(props: {
   return (
     <div css={{ display: "flex", paddingTop: "0.5em", flex: "1" }}>
       <EntitySearch
-        sx={{ width: "10em" }}
+        sx={{ flex: "1" }}
         type={props.type}
         extraOptions={props.extraOptions}
         popperWidth={(width) =>
@@ -34,6 +34,7 @@ export function NamedItem(props: {
         }
       />
       <TextField
+        sx={{ flex: "2" }}
         label="Name"
         fullWidth
         ref={textFieldRef}

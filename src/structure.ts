@@ -26,7 +26,7 @@ export interface StructureSettings {
 export interface TableStructurePartial {
   name: string;
   parentItem: string;
-  fields: OrderedMap<TableField>;
+  fields: TableField[];
 }
 
 export interface TableStructure extends TableStructurePartial {
