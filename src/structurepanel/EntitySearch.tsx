@@ -1,5 +1,5 @@
-import Autocomplete from "@mui/material/Autocomplete";
-import { useState } from "react";
+import Autocomplete, { createFilterOptions } from "@mui/material/Autocomplete";
+import { useMemo, useState } from "react";
 import { Settings as IconGear } from "@mui/icons-material";
 
 import { searchEntities, SearchEntitiesParams, EntityType } from "src/wikibase";
@@ -16,10 +16,6 @@ export interface EntityValue {
   data: HasId;
 }
 
-function withSpecialTag(isSpecial: boolean, options: HasId[] | undefined) {
-  return options ? options.map((data) => ({ isSpecial, data })) : [];
-}
-
 export function EntitySearch(props: {
   type: EntityType;
   value?: EntityValue | string | null;
@@ -29,9 +25,21 @@ export function EntitySearch(props: {
   popperWidth?: (width: number) => number;
 }) {
   const [inputValue, setInputValue] = useState("");
+
   const [{ result: entityOptions }, fetchOptions] = useAsync(
-    async (props: SearchEntitiesParams) => (await searchEntities(props)).search
+    async (props: SearchEntitiesParams) => {
+      const result = await searchEntities(props);
+      return result.search.map(
+        (data) => ({ isSpecial: false, data } as EntityValue)
+      );
+    }
   );
+  const extraOptions = useMemo(() => {
+    if (!props.extraOptions) return [];
+    return props.extraOptions.map(
+      (data) => ({ isSpecial: true, data } as EntityValue)
+    );
+  }, [props.extraOptions]);
 
   useDebouncedEffect(
     () => fetchOptions.execute({ search: inputValue, type: props.type }),
@@ -39,17 +47,19 @@ export function EntitySearch(props: {
     200
   );
 
+  const filterOptions = createFilterOptions<EntityValue>();
+
   return (
     <Autocomplete<EntityValue, false, boolean>
       sx={props.sx}
       onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
-      options={[
-        ...withSpecialTag(true, props.extraOptions),
-        ...withSpecialTag(false, entityOptions),
-      ]}
+      options={[...extraOptions, ...(entityOptions ?? [])]}
       getOptionLabel={(option) => option.data.id}
       isOptionEqualToValue={(option, value) => option.data.id === value.data.id}
-      filterOptions={(opt) => opt}
+      filterOptions={(options, state) => [
+        ...filterOptions(extraOptions, state),
+        ...(entityOptions ?? []),
+      ]}
       PopperComponent={(popperProps) => {
         const popperStyle = { ...popperProps.style };
         if (props.popperWidth && popperStyle.width) {

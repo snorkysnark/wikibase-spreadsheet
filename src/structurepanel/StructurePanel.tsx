@@ -49,7 +49,7 @@ export default function StructurePanel(props: {
         <Divider sx={{ marginY: "0.5em" }} />
         <EntitySearch
           type="property"
-          extraOptions={[{ id: "Item ID" }, { id: "Description" }]}
+          extraOptions={[{ id: "itemId" }, { id: "description" }]}
           value={someProp}
           onChange={setSomeProp}
         />
