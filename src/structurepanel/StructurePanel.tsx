@@ -14,22 +14,16 @@ import {
   TableStructurePartial,
 } from "src/structure";
 import { EntitySearch } from "./EntitySearch";
-import {
-  MouseEventHandler,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { MouseEventHandler, useCallback, useEffect, useState } from "react";
 import { NamedItem, NamedItemValue } from "./NamedItem";
 import { useList } from "@react-hookz/web";
 import SortableList from "./SortableList";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import hyperid from "hyperid";
 import { EntityType, getItemUrl } from "src/wikibase";
 import { produce } from "immer";
 import CreateEntityDialog from "./CreateEntityDialog";
+import { makeUuid } from "src/util";
 
 interface TableFieldTmp {
   uuid: string;
@@ -106,7 +100,6 @@ export default function StructurePanel(props: {
     name: "",
   });
 
-  const makeId = useMemo(() => hyperid(), []);
   const [fields, fieldsControl] = useList<TableFieldTmp>([]);
 
   useEffect(() => {
@@ -239,7 +232,7 @@ export default function StructurePanel(props: {
           <Button
             onClick={() => {
               fieldsControl.push({
-                uuid: makeId(),
+                uuid: makeUuid(),
                 property: null,
                 name: "",
               });

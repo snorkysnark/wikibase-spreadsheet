@@ -1,7 +1,7 @@
 import { useLocalStorageValue } from "@react-hookz/web";
-import hyperid from "hyperid";
 import { produce } from "immer";
 import { useMemo } from "react";
+import { makeUuid } from "./util";
 
 export function map<T, U>(
   m: OrderedMap<T>,
@@ -53,8 +53,6 @@ export interface SettingsActions {
 }
 
 export function useSettings(): [StructureSettings, SettingsActions] {
-  const makeId = useMemo(() => hyperid(), []);
-
   const { value, set } = useLocalStorageValue("table-structure", {
     defaultValue: {
       isInstanceProperty: null,
@@ -73,7 +71,7 @@ export function useSettings(): [StructureSettings, SettingsActions] {
         );
       },
       addTable(data: TableStructurePartial) {
-        const uuid = makeId();
+        const uuid = makeUuid();
 
         set(
           produce((settings) => {

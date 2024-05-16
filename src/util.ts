@@ -1,3 +1,7 @@
+import hyperid from "hyperid";
+
+export const makeUuid = hyperid();
+
 export function nonNullish<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }

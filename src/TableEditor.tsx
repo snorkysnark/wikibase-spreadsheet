@@ -9,7 +9,7 @@ import {
 import { TableStructure } from "./structure";
 import Handsontable from "handsontable";
 import { CellMeta, CellProperties } from "node_modules/handsontable/settings";
-import { nonNullish, unique } from "./util";
+import { makeUuid, nonNullish, unique } from "./util";
 import { LocalRow } from "./localTable";
 
 export interface TableEditorHandle {
@@ -104,6 +104,10 @@ const TableEditor = forwardRef(function TableEditor(
       }),
     [tableStructure]
   );
+  const hasLabel = useMemo(
+    () => !!tableStructure.fields.find((field) => field.property === "label"),
+    [tableStructure]
+  );
 
   useEffect(() => {
     itemsForDeletion.current.clear();
@@ -184,7 +188,7 @@ const TableEditor = forwardRef(function TableEditor(
         hot.alter("insert_row_below");
 
         const lastRow = hot.countRows() - 1;
-        hot.setDataAtRowProp(lastRow, "label", crypto.randomUUID());
+        if (hasLabel) hot.setDataAtRowProp(lastRow, "label", makeUuid());
         hot.selectCell(lastRow, 0);
       }
     },
