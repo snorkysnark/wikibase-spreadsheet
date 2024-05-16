@@ -184,7 +184,7 @@ const TableEditor = forwardRef(function TableEditor(
         hot.alter("insert_row_below");
 
         const lastRow = hot.countRows() - 1;
-        hot.setDataAtRowProp(lastRow, "label.value", crypto.randomUUID());
+        hot.setDataAtRowProp(lastRow, "label", crypto.randomUUID());
         hot.selectCell(lastRow, 0);
       }
     },
