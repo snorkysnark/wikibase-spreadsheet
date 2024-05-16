@@ -68,7 +68,7 @@ function EditTableField({
       <NamedItem
         type="property"
         extraOptions={[
-          { id: "itemID" },
+          { id: "label" },
           { id: "description" },
           { id: "aliases" },
         ]}

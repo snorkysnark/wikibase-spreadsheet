@@ -91,13 +91,17 @@ const TableEditor = forwardRef(function TableEditor(
   const itemsForDeletion = useRef(new Set<number>());
 
   const colSettings = useMemo<ColumnSettings[]>(
-    () => [
-      { name: "label", prop: "label.value" },
-      ...tableStructure.fields.map((field) => ({
-        name: field.name,
-        prop: `properties.${field.property}.value`,
-      })),
-    ],
+    () =>
+      tableStructure.fields.map((field) => {
+        const prop = field.property.startsWith("P")
+          ? `properties.${field.property}.value`
+          : field.property;
+
+        return {
+          name: field.name,
+          prop,
+        };
+      }),
     [tableStructure]
   );
 

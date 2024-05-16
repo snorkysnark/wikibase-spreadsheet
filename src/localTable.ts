@@ -7,32 +7,41 @@ export interface SparqlQueryDesc {
 }
 
 function buildItemQuery(desc: SparqlQueryDesc) {
-  const fields = [
-    "?item",
-    "?label",
-    ...desc.properties.map((prop) => [`?id${prop}`, `?${prop}`]),
-  ].flat();
+  const fields = desc.properties.flatMap((prop) => {
+    return (
+      {
+        label: "?label",
+        description: "?description",
+        aliases: "?aliases",
+      }[prop] ?? [`?id${prop}`, `?${prop}`]
+    );
+  });
+  const externalProps = desc.properties.filter((prop) => prop.startsWith("P"));
 
   const statements = [
     `?item wdt:${desc.isInstanceProp} wd:${desc.parent}`,
-    ...desc.properties.map((prop) => {
+    ...externalProps.map((prop) => {
       // item -> statement -> value
       return `OPTIONAL { ?item p:${prop} ?id${prop} . ?id${prop} ps:${prop} ?${prop} }`;
     }),
   ];
 
-  return `SELECT ${fields.join(" ")} WHERE {
+  return `SELECT ?item ${fields.join(" ")} WHERE {
     ${statements.join("\n")} .
     SERVICE wikibase:label {
       bd:serviceParam wikibase:language "en".
       ?item rdfs:label ?label .
+      ?item schema:description ?description .
+      ?item skos:altLabel ?aliases .
     }
   } ORDER BY ?item`;
 }
 
 export interface LocalRow {
   itemId: number | null;
-  label: { value: string };
+  label?: string;
+  description?: string;
+  aliases?: string;
   properties: { [id: string]: LocalProperty };
 }
 
@@ -73,7 +82,9 @@ export async function loadTableFromQuery(
     if (binding.item.value !== lastItemUri) {
       rows.push({
         itemId: itemIdFromUri(binding.item.value),
-        label: { value: binding.label.value },
+        label: binding.label?.value,
+        description: binding.description?.value,
+        aliases: binding.aliases?.value,
         properties: Object.fromEntries(
           properties.map((propertyId) => {
             const propertyObject = binding[propertyId];

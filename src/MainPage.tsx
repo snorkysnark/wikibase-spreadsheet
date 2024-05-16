@@ -1,9 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useSettings, map } from "./structure";
-import { TableEditorHandle } from "./TableEditor";
+import TableEditor, { TableEditorHandle } from "./TableEditor";
 import ControlsBar from "./ControlsBar";
 import StructurePanel from "./structurepanel";
+import { useAsync } from "@react-hookz/web";
+import { LocalRow, loadTableFromQuery } from "./localTable";
 
 type DialogState = { type: "export" } | { type: "import" };
 
@@ -18,6 +20,19 @@ export default function MainPage() {
         : null,
     [settings.tables, currentTableUuid]
   );
+
+  const [tableQuery, queryAction] = useAsync<LocalRow[] | null>(async () => {
+    if (!settings.isInstanceProperty || !currentTable) return null;
+
+    return loadTableFromQuery({
+      isInstanceProp: settings.isInstanceProperty,
+      parent: currentTable.parentItem,
+      properties: currentTable.fields.map((field) => field.property),
+    });
+  }, null);
+  useEffect(() => {
+    queryAction.execute();
+  }, [settings, currentTable]);
 
   const hotRef = useRef<TableEditorHandle | null>(null);
   const [dialogState, setDialogState] = useState<DialogState | null>(null);
@@ -37,12 +52,22 @@ export default function MainPage() {
           tables={map(settings.tables, (table) => table.definition)}
           addRow={() => hotRef.current?.addDefaultRow()}
           deleteRow={() => hotRef.current?.toggleRowDeletion()}
-          reload={() => {}}
+          reload={() => {
+            queryAction.execute();
+          }}
           csvExport={() => setDialogState({ type: "export" })}
           csvImport={() => setDialogState({ type: "import" })}
         />
         <div css={{ width: "100%", height: "100%", display: "flex" }}>
-          <div css={{ flex: "1" }}></div>
+          <div css={{ flex: "1" }}>
+            {currentTable && tableQuery.result && (
+              <TableEditor
+                ref={hotRef}
+                data={tableQuery.result}
+                tableStructure={currentTable}
+              />
+            )}
+          </div>
           <div
             css={{
               width: "30%",
