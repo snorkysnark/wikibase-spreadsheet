@@ -117,9 +117,20 @@ export interface SearchEntitiesParams {
   props?: string;
 }
 
+export interface SearchEntitiesResponse {
+  search: FoundEntity[];
+}
+
+export interface FoundEntity {
+  id: string;
+  title: string;
+  label: string;
+  description: string;
+}
+
 export async function searchEntities(
   params: SearchEntitiesParams
-): Promise<any> {
+): Promise<SearchEntitiesResponse> {
   return handleErrors(
     fetch(
       `${API_URL}?${new URLSearchParams({

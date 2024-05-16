@@ -3,8 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { useSettings, map } from "./structure";
 import { TableEditorHandle } from "./TableEditor";
 import ControlsBar from "./ControlsBar";
-import StructurePanel from "./structurepanel/StructurePanel";
-import { produce } from "immer";
+import StructurePanel from "./structurepanel";
 
 type DialogState = { type: "export" } | { type: "import" };
 

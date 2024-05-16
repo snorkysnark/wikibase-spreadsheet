@@ -1,62 +1,54 @@
 import Autocomplete from "@mui/material/Autocomplete";
-import { debounce } from "@mui/material/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import { Settings as IconGear } from "@mui/icons-material";
 
 import { searchEntities, SearchEntitiesParams, EntityType } from "src/wikibase";
 import { Popper, SxProps, TextField, Typography } from "@mui/material";
+import { useAsync, useDebouncedEffect } from "@react-hookz/web";
 
-export interface ItemValue {
+export interface HasId {
   id: string;
   label?: string;
-  special?: boolean;
 }
 
-export default function ItemSearch(props: {
+export interface EntityValue {
+  isSpecial: boolean;
+  data: HasId;
+}
+
+function withSpecialTag(isSpecial: boolean, options: HasId[] | undefined) {
+  return options ? options.map((data) => ({ isSpecial, data })) : [];
+}
+
+export function EntitySearch(props: {
   type: EntityType;
-  value?: ItemValue | string | null;
-  onChange?: (value: ItemValue | null) => void;
+  value?: EntityValue | string | null;
+  extraOptions?: HasId[];
+  onChange?: (value: EntityValue | null) => void;
   sx?: SxProps;
   popperWidth?: (width: number) => number;
 }) {
   const [inputValue, setInputValue] = useState("");
-  const [options, setOptions] = useState<any[]>([]);
-
-  const fetchOptions = useMemo(
-    () =>
-      debounce(
-        (params: SearchEntitiesParams, callback: (response: any) => void) => {
-          searchEntities(params).then(callback);
-        }
-      ),
-    []
+  const [{ result: entityOptions }, fetchOptions] = useAsync(
+    async (props: SearchEntitiesParams) => (await searchEntities(props)).search
   );
 
-  useEffect(() => {
-    if (inputValue === "") {
-      setOptions([]);
-      return undefined;
-    }
-
-    let active = true;
-    fetchOptions({ search: inputValue, type: props.type }, (results) => {
-      if (active) {
-        setOptions(results.search);
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, [inputValue, fetchOptions]);
+  useDebouncedEffect(
+    () => fetchOptions.execute({ search: inputValue, type: props.type }),
+    [inputValue, props.type],
+    200
+  );
 
   return (
-    <Autocomplete<ItemValue, false, boolean>
+    <Autocomplete<EntityValue, false, boolean>
       sx={props.sx}
       onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
-      options={options}
-      getOptionLabel={(option) => {
-        return option.id;
-      }}
-      isOptionEqualToValue={(option, value) => value && option.id === value.id}
+      options={[
+        ...withSpecialTag(true, props.extraOptions),
+        ...withSpecialTag(false, entityOptions),
+      ]}
+      getOptionLabel={(option) => option.data.id}
+      isOptionEqualToValue={(option, value) => option.data.id === value.data.id}
       filterOptions={(opt) => opt}
       PopperComponent={(popperProps) => {
         const popperStyle = { ...popperProps.style };
@@ -80,19 +72,22 @@ export default function ItemSearch(props: {
       )}
       renderOption={(props, option) => (
         <li {...props}>
+          {option.isSpecial && <IconGear />}
           <Typography
             sx={{
               fontWeight: "bold",
               marginRight: "1em",
             }}
           >
-            {option.id}
+            {option.data.id}
           </Typography>
-          {option.label && <Typography>{option.label}</Typography>}
+          {option.data.label && <Typography>{option.data.label}</Typography>}
         </li>
       )}
       value={
-        typeof props.value === "string" ? { id: props.value } : props.value
+        typeof props.value === "string"
+          ? { isSpecial: false, data: { id: props.value } }
+          : props.value
       }
       onChange={(_, value) => {
         props.onChange?.(value);

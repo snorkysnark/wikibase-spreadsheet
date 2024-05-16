@@ -1,7 +1,9 @@
 import { ButtonGroup, Divider, IconButton, Typography } from "@mui/material";
 import { MoreHoriz } from "@mui/icons-material";
-import ItemSearch from "./ItemSearch";
 import { TableStructure, TableStructurePartial } from "src/structure";
+import { EntitySearch } from "./EntitySearch";
+import { useState } from "react";
+import { FoundEntity } from "src/wikibase";
 
 export default function StructurePanel(props: {
   isInstanceProperty: string | null;
@@ -10,6 +12,9 @@ export default function StructurePanel(props: {
   onChangeStucture: (tableStructure: TableStructurePartial) => void;
   onDelete: () => void;
 }) {
+  const [someProp, setSomeProp] = useState<any>("P3");
+  console.log(someProp);
+
   return (
     <div
       css={{
@@ -26,11 +31,11 @@ export default function StructurePanel(props: {
           }}
         >
           <Typography variant="h5">Is instance(</Typography>
-          <ItemSearch
+          <EntitySearch
             type="property"
             value={props.isInstanceProperty}
             onChange={(value) =>
-              props.onChangeInstanceProperty(value && value.id)
+              props.onChangeInstanceProperty(value && value.data.id)
             }
             sx={{ flex: "1" }}
           />
@@ -42,6 +47,12 @@ export default function StructurePanel(props: {
           </IconButton>
         </div>
         <Divider sx={{ marginY: "0.5em" }} />
+        <EntitySearch
+          type="property"
+          extraOptions={[{ id: "Item ID" }, { id: "Description" }]}
+          value={someProp}
+          onChange={setSomeProp}
+        />
       </div>
 
       <ButtonGroup variant="outlined" fullWidth></ButtonGroup>
