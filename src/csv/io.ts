@@ -47,6 +47,11 @@ function updateRowFromCsv(
   csvRow: any
 ) {
   for (const field of fields) {
+    if (field.tableProp === "itemId") {
+      // itemId is immutable, trying to modify it will cause an exception
+      continue;
+    }
+
     hot.setDataAtRowProp(row, field.tableProp, csvRow[field.csvName]);
   }
 }
