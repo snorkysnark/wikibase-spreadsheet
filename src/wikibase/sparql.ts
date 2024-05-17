@@ -1,7 +1,8 @@
 import { handleErrors } from "./errors";
 
-const SPARQL_URL =
-  "http://localhost:8834/proxy/wdqs/bigdata/namespace/wdq/sparql";
+const SPARQL_URL = `http://localhost:${
+  import.meta.env.VITE_WDQS_FRONTEND_PORT
+}/proxy/wdqs/bigdata/namespace/wdq/sparql`;
 
 export interface SparqlResponse {
   head: { vars: string[] };

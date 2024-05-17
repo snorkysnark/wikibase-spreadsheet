@@ -1,6 +1,6 @@
 import { handleErrors } from "./errors";
 
-const BASE_URL = "http://localhost:8030";
+const BASE_URL = `http://localhost:${import.meta.env.VITE_WIKIBASE_PORT}`;
 const WIKI_URL = BASE_URL + "/wiki";
 const API_URL = BASE_URL + "/api.php";
 
