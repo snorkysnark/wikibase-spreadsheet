@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { useSettings, map } from "./structure";
+import { useSettings, map, useMappings } from "./structure";
 import TableEditor, { TableEditorHandle } from "./TableEditor";
 import ControlsBar from "./ControlsBar";
 import StructurePanel from "./structurepanel";
@@ -35,11 +35,11 @@ export default function MainPage() {
       ? settings.tables.byUuid[currentTableUuid].definition
       : null;
   }, [settings.tables, currentTableUuid]);
-  const csvMappings = useMemo(() => {
-    return currentTableUuid
-      ? settings.tables.byUuid[currentTableUuid].csvMappings
-      : null;
-  }, [settings.tables, currentTableUuid]);
+  const [csvMappings, alterMappings] = useMappings(
+    settings,
+    alterSettings,
+    currentTableUuid
+  );
 
   const [tableQuery, queryAction] = useAsync<LocalRow[] | null>(async () => {
     if (!settings.isInstanceProperty || !currentTable) return null;
@@ -141,10 +141,11 @@ export default function MainPage() {
         />
       )}
 
-      {dialogState?.type === "export" && currentTable && csvMappings && (
+      {dialogState?.type === "export" && currentTable && (
         <ExportDialog
           tableStructure={currentTable}
-          csvMappings={csvMappings}
+          csvMappings={csvMappings!}
+          alterMappings={alterMappings!}
           onClose={() => setDialogState(null)}
           onSubmit={(params) => {
             if (hotRef.current?.table) {

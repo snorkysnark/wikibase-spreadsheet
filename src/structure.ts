@@ -33,10 +33,14 @@ export interface TableStructure extends TableStructurePartial {
   uuid: string;
 }
 
-export interface CsvMapping {
-  uuid: string;
+export interface CsvMappingPartial {
   name: string;
+  delimiter: string;
   pairs: FieldMapping[];
+}
+
+export interface CsvMapping extends CsvMappingPartial {
+  uuid: string;
 }
 
 export interface FieldMapping {
@@ -56,6 +60,13 @@ export interface SettingsActions {
   addTable(data: TableStructurePartial): string;
   alterTable(uuid: string, data: TableStructurePartial): void;
   deleteTable(uuid: string): void;
+  addMapping(tableUuid: string, mapping: CsvMappingPartial): string;
+  updateMapping(
+    tableUuid: string,
+    mappingUuid: string,
+    mapping: CsvMappingPartial
+  ): void;
+  deleteMapping(tableUuid: string, mappingUuid: string): void;
 }
 
 export function useSettings(): [StructureSettings, SettingsActions] {
@@ -67,7 +78,7 @@ export function useSettings(): [StructureSettings, SettingsActions] {
     initializeWithValue: true,
   });
 
-  const actions = useMemo(
+  const actions: SettingsActions = useMemo(
     () => ({
       setInstanceProperty(value: string | null) {
         set(
@@ -91,14 +102,14 @@ export function useSettings(): [StructureSettings, SettingsActions] {
 
         return uuid;
       },
-      alterTable(uuid: string, data: TableStructurePartial) {
+      alterTable(uuid, data) {
         set(
           produce((settings) => {
             settings.tables.byUuid[uuid].definition = { uuid, ...data };
           })
         );
       },
-      deleteTable(uuid: string) {
+      deleteTable(uuid) {
         set(
           produce((settings) => {
             settings.tables.order = settings.tables.order.filter(
@@ -108,9 +119,77 @@ export function useSettings(): [StructureSettings, SettingsActions] {
           })
         );
       },
+      addMapping(tableUuid, mapping) {
+        const uuid = makeUuid();
+
+        set(
+          produce((settings) => {
+            const mappings = settings.tables.byUuid[tableUuid].csvMappings;
+            mappings.byUuid[uuid] = {
+              uuid,
+              ...mapping,
+            };
+            mappings.order.push(uuid);
+          })
+        );
+        return uuid;
+      },
+      updateMapping(tableUuid, mappingUuid, mapping) {
+        set(
+          produce((settings) => {
+            const mappings = settings.tables.byUuid[tableUuid].csvMappings;
+            mappings.byUuid[mappingUuid] = { uuid: mappingUuid, ...mapping };
+          })
+        );
+      },
+      deleteMapping(tableUuid: string, mappingUuid: string) {
+        set(
+          produce((settings) => {
+            const mappings = settings.tables.byUuid[tableUuid].csvMappings;
+            delete mappings.byUuid[mappingUuid];
+            mappings.order = mappings.order.filter(
+              (uuid) => uuid !== mappingUuid
+            );
+          })
+        );
+      },
     }),
     []
   );
 
   return [value, actions];
+}
+
+export interface CsvMappingActions {
+  add(mapping: CsvMappingPartial): string;
+  update(mappingUuid: string, mapping: CsvMappingPartial): void;
+  delete(mappingUuid: string): void;
+}
+
+export function useMappings(
+  settings: StructureSettings,
+  alterSettings: SettingsActions,
+  tableUuid: string | null
+): [OrderedMap<CsvMapping> | null, CsvMappingActions | null] {
+  const mappings = useMemo(() => {
+    return tableUuid ? settings.tables.byUuid[tableUuid].csvMappings : null;
+  }, [settings, tableUuid]);
+
+  const actions: CsvMappingActions | null = useMemo(() => {
+    if (!tableUuid) return null;
+
+    return {
+      add(mapping) {
+        return alterSettings.addMapping(tableUuid, mapping);
+      },
+      update(mappingUuid, mapping) {
+        alterSettings.updateMapping(tableUuid, mappingUuid, mapping);
+      },
+      delete(mappingUuid) {
+        alterSettings.deleteMapping(tableUuid, mappingUuid);
+      },
+    };
+  }, [alterSettings, tableUuid]);
+
+  return [mappings, actions];
 }

@@ -15,6 +15,13 @@ export function useDelimiter() {
   return useState<DelimiterState>({ delimiter: ",", custom: false });
 }
 
+export function parseDelimiterState(delimiter: string): DelimiterState {
+  if (delimiter === "," || delimiter === "\t") {
+    return { delimiter, custom: false };
+  }
+  return { delimiter, custom: true };
+}
+
 export function DelimiterMenu(props: {
   value?: DelimiterState;
   onChange?(value: DelimiterState): void;
