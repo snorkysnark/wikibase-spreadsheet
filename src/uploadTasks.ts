@@ -48,6 +48,16 @@ function toItemData(changes: ItemChanges): any {
     ...(changes.label && {
       labels: { en: { language: "en", value: changes.label } },
     }),
+    ...(changes.description && {
+      descriptions: { en: { language: "en", value: changes.description } },
+    }),
+    ...(changes.aliases && {
+      aliases: {
+        en: changes.aliases
+          .split(", ")
+          .map((alias) => ({ language: "en", value: alias })),
+      },
+    }),
     ...(claims.length > 0 && { claims }),
   };
 }
