@@ -29,7 +29,7 @@ function prepareGuid(guid: string): string {
   return guid.includes("$") ? guid : guid.replace("-", "$");
 }
 
-function toItemData(changes: ItemChanges, labelRequired: boolean): any {
+function toItemData(changes: ItemChanges): any {
   const claims: any[] = [];
   for (const { guid, property, value } of changes.properties) {
     claims.push({
@@ -65,7 +65,7 @@ export class UpdateTask extends NamedTask {
   async run(): Promise<void> {
     await editEntity({
       id: this.itemId,
-      data: toItemData(this.changes, false),
+      data: toItemData(this.changes),
     });
   }
 }
@@ -91,7 +91,7 @@ export class CreationTask extends NamedTask {
   }
 
   async run(): Promise<void> {
-    const data = toItemData(this.changes, true);
+    const data = toItemData(this.changes);
 
     if (!data.claims) data.claims = [];
     data.claims.push({
