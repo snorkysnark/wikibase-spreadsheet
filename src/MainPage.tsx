@@ -160,6 +160,8 @@ export default function MainPage() {
       {dialogState?.type === "import" && currentTable && (
         <ImportDialog
           tableStructure={currentTable}
+          csvMappings={csvMappings}
+          alterMappings={alterMappings!}
           onClose={() => setDialogState(null)}
           onSubmit={(file, params) => {
             const table = hotRef.current?.table;

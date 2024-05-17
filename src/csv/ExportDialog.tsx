@@ -162,11 +162,11 @@ export function ExportDialog({
     }
   }, [tableStructure, mapping]);
 
-  const makeUpdatedMapping = () => {
+  const makeUpdatedMapping = (current: CsvMapping | null) => {
     return {
-      name: mapping?.name || "",
+      name: current?.name || "",
       delimiter: delimiterState.delimiter,
-      pairs: updatedJsonMappings(mapping?.pairs, fields),
+      pairs: updatedJsonMappings(current?.pairs, fields),
     };
   };
 

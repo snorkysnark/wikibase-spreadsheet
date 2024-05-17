@@ -20,7 +20,7 @@ export default function MappingPicker({
   onChange(mapping: CsvMapping | null): void;
   csvMappings: OrderedMap<CsvMapping>;
   alterMappings: CsvMappingActions;
-  makeUpdated(): CsvMappingPartial;
+  makeUpdated(current: CsvMapping | null): CsvMappingPartial | null;
 }) {
   // Uuid to be selected on next render
   const [selectUuid, setSelectUuid] = useState<string | null>(null);
@@ -42,10 +42,11 @@ export default function MappingPicker({
 
           const name = (event.target as HTMLInputElement).value;
           if (name) {
-            const updated = makeUpdated();
-            updated.name = name;
-
-            setSelectUuid(alterMappings.add(updated));
+            const updated = makeUpdated(value);
+            if (updated) {
+              updated.name = name;
+              setSelectUuid(alterMappings.add(updated));
+            }
             setSaveAsMode(false);
           }
         }}
@@ -94,7 +95,10 @@ export default function MappingPicker({
         aria-label="save mapping"
         onClick={() => {
           if (value) {
-            alterMappings.update(value.uuid, makeUpdated());
+            const updated = makeUpdated(value);
+            if (!updated) return;
+
+            alterMappings.update(value.uuid, updated);
             setSelectUuid(value.uuid);
           } else {
             setSaveAsMode(true);
