@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => {
   };
 
   return {
+    server: {
+      port: 5173,
+    },
     plugins: [
       react({
         jsxImportSource: "@emotion/react",
