@@ -172,7 +172,6 @@ const TableEditor = forwardRef(function TableEditor(
 
   useEffect(() => {
     itemsForDeletion.current.clear();
-    existingRows.current = data.length;
 
     const hot = new Handsontable(container.current!, {
       colHeaders: [...colSettings.map((col) => col.name)],
@@ -235,6 +234,7 @@ const TableEditor = forwardRef(function TableEditor(
 
   useEffect(() => {
     itemsForDeletion.current.clear();
+    existingRows.current = data.length;
 
     if (hotRef.current) {
       hotRef.current.loadData(data);
