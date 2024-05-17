@@ -38,7 +38,7 @@ function buildItemQuery(desc: SparqlQueryDesc) {
 }
 
 export interface LocalRow {
-  itemId: number | null;
+  itemId: string | null;
   label?: string;
   description?: string;
   aliases?: string;
@@ -81,7 +81,7 @@ export async function loadTableFromQuery(
     // Skip duplicates (results are already sorted by ?item)
     if (binding.item.value !== lastItemUri) {
       rows.push({
-        itemId: itemIdFromUri(binding.item.value),
+        itemId: lastUriPart(binding.item.value),
         label: binding.label?.value,
         description: binding.description?.value,
         aliases: binding.aliases?.value,

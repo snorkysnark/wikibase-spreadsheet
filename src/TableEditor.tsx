@@ -16,7 +16,6 @@ import {
   DeletionTask,
   ItemChanges,
   NamedTask,
-  PropertyChanges,
   UpdateTask,
 } from "./uploadTasks";
 
@@ -53,9 +52,9 @@ function extendCellSettings(
   settings: CellProperties,
   row: number,
   column: number,
-  itemsForDeleteion: Set<number>
+  itemsForDeleteion: Set<string>
 ): CellMeta {
-  const itemId = hot.getDataAtRowProp(row, "itemId");
+  const itemId: string | null = hot.getDataAtRowProp(row, "itemId");
   if (itemId === null) {
     return { className: "edited" }; // New row
   }
@@ -129,7 +128,7 @@ function* getUpdateTasks(
       }
     }
 
-    if (changes) yield new UpdateTask(`Q${itemId}`, changes);
+    if (changes) yield new UpdateTask(itemId, changes);
   }
 }
 
@@ -148,7 +147,7 @@ const TableEditor = forwardRef(function TableEditor(
   const container = useRef<HTMLDivElement | null>(null);
   const hotRef = useRef<Handsontable | null>(null);
 
-  const itemsForDeletion = useRef(new Set<number>());
+  const itemsForDeletion = useRef(new Set<string>());
   const existingRows = useRef(0);
 
   const colSettings = useMemo<ColumnSettings[]>(
@@ -194,8 +193,8 @@ const TableEditor = forwardRef(function TableEditor(
     });
     hot.updateSettings({
       rowHeaders: (index) => {
-        const itemId: number | null = hot.getDataAtRowProp(index, "itemId");
-        return itemId !== null ? `Q${itemId}` : "?";
+        const itemId: string | null = hot.getDataAtRowProp(index, "itemId");
+        return itemId !== null ? itemId : "?";
       },
       cells(row, column) {
         return extendCellSettings(
@@ -264,7 +263,7 @@ const TableEditor = forwardRef(function TableEditor(
         // Iterate in reverse order
         for (let i = selectedRows.length - 1; i >= 0; i--) {
           const row = selectedRows[i];
-          const itemId: number | null = hot.getDataAtRowProp(row, "itemId");
+          const itemId: string | null = hot.getDataAtRowProp(row, "itemId");
 
           if (itemId === null) {
             // New row
@@ -314,7 +313,7 @@ const TableEditor = forwardRef(function TableEditor(
         }
 
         for (const itemId of itemsForDeletion.current) {
-          modifications.push(new DeletionTask(`Q${itemId}`));
+          modifications.push(new DeletionTask(itemId));
         }
       }
 
