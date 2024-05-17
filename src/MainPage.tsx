@@ -6,8 +6,22 @@ import ControlsBar from "./ControlsBar";
 import StructurePanel from "./structurepanel";
 import { useAsync } from "@react-hookz/web";
 import { LocalRow, loadTableFromQuery } from "./localTable";
+import { useMutation } from "react-query";
+import { NamedTask } from "./uploadTasks";
+import UploadDialog from "./UploadDialog";
 
 type DialogState = { type: "export" } | { type: "import" };
+
+async function runTasks(
+  tasks: NamedTask[],
+  setDescription: (value: string | null) => void
+) {
+  for (const task of tasks) {
+    setDescription(task.description);
+    await task.run();
+  }
+  setDescription(null);
+}
 
 export default function MainPage() {
   const [settings, alterSettings] = useSettings();
@@ -37,6 +51,12 @@ export default function MainPage() {
   const hotRef = useRef<TableEditorHandle | null>(null);
   const [dialogState, setDialogState] = useState<DialogState | null>(null);
 
+  const [taskDescription, setTaskDescription] = useState<string | null>(null);
+  const tasks = useMutation<void, Error, NamedTask[]>(
+    (tasks: NamedTask[]) => runTasks(tasks, setTaskDescription),
+    { onSettled: () => queryAction.execute() }
+  );
+
   return (
     <>
       <div
@@ -55,7 +75,11 @@ export default function MainPage() {
           reload={() => {
             queryAction.execute();
           }}
-          upload={() => console.log(hotRef.current?.getModifications())}
+          upload={() => {
+            if (hotRef.current) {
+              tasks.mutate(hotRef.current.getModifications());
+            }
+          }}
           csvExport={() => setDialogState({ type: "export" })}
           csvImport={() => setDialogState({ type: "import" })}
         />
@@ -97,6 +121,19 @@ export default function MainPage() {
           </div>
         </div>
       </div>
+
+      {taskDescription && (
+        <UploadDialog
+          description={taskDescription}
+          error={tasks.error}
+          onClose={() => {
+            if (tasks.isError) {
+              tasks.reset();
+              setTaskDescription(null);
+            }
+          }}
+        />
+      )}
     </>
   );
 }
