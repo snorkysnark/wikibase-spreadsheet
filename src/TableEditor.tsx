@@ -10,7 +10,7 @@ import { TableStructure } from "./structure";
 import Handsontable from "handsontable";
 import { CellMeta, CellProperties } from "node_modules/handsontable/settings";
 import { makeUuid, nonNullish, unique } from "./util";
-import { LocalRow, itemIdFromUri } from "./localTable";
+import { LocalRow, itemIdFromUri, propertyToPath } from "./localTable";
 import {
   CreationTask,
   DeletionTask,
@@ -153,13 +153,9 @@ const TableEditor = forwardRef(function TableEditor(
   const colSettings = useMemo<ColumnSettings[]>(
     () =>
       tableStructure.fields.map((field) => {
-        const prop = field.property.startsWith("P")
-          ? `properties.${field.property}.value`
-          : field.property;
-
         return {
           name: field.name,
-          prop,
+          prop: propertyToPath(field.property),
         };
       }),
     [tableStructure]

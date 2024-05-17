@@ -56,3 +56,15 @@ export function saveToFile(data: string, filename: string) {
 
   URL.revokeObjectURL(blobUrl);
 }
+
+export function uuidMap<T extends { uuid: string }>(
+  array: T[]
+): Map<string, T> {
+  const map = new Map<string, T>();
+
+  for (const item of array) {
+    map.set(item.uuid, item);
+  }
+
+  return map;
+}

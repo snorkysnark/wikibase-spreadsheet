@@ -6,6 +6,10 @@ export interface SparqlQueryDesc {
   properties: string[];
 }
 
+export function propertyToPath(property: string) {
+  return property.startsWith("P") ? `properties.${property}.value` : property;
+}
+
 function buildItemQuery(desc: SparqlQueryDesc) {
   const fields = desc.properties.flatMap((prop) => {
     return (

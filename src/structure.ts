@@ -33,10 +33,16 @@ export interface TableStructure extends TableStructurePartial {
   uuid: string;
 }
 
-interface CsvMapping {
+export interface CsvMapping {
   uuid: string;
   name: string;
-  pairs: [fieldUuid: string, csvField: string][];
+  pairs: FieldMapping[];
+}
+
+export interface FieldMapping {
+  isKey: boolean;
+  fieldUuid: string;
+  csvField: string;
 }
 
 export interface TableField {

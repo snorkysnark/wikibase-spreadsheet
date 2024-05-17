@@ -9,7 +9,8 @@ import { LocalRow, loadTableFromQuery } from "./localTable";
 import { useMutation } from "react-query";
 import { NamedTask } from "./uploadTasks";
 import UploadDialog from "./UploadDialog";
-import { makeUuid } from "./util";
+import { ExportDialog, writeToCsv } from "./csv";
+import { saveToFile } from "./util";
 
 type DialogState = { type: "export" } | { type: "import" };
 
@@ -28,13 +29,16 @@ export default function MainPage() {
   const [settings, alterSettings] = useSettings();
 
   const [currentTableUuid, setCurrentTableUuid] = useState<string | null>(null);
-  const currentTable = useMemo(
-    () =>
-      currentTableUuid
-        ? settings.tables.byUuid[currentTableUuid].definition
-        : null,
-    [settings.tables, currentTableUuid]
-  );
+  const currentTable = useMemo(() => {
+    return currentTableUuid
+      ? settings.tables.byUuid[currentTableUuid].definition
+      : null;
+  }, [settings.tables, currentTableUuid]);
+  const csvMappings = useMemo(() => {
+    return currentTableUuid
+      ? settings.tables.byUuid[currentTableUuid].csvMappings
+      : null;
+  }, [settings.tables, currentTableUuid]);
 
   const [tableQuery, queryAction] = useAsync<LocalRow[] | null>(async () => {
     if (!settings.isInstanceProperty || !currentTable) return null;
@@ -131,6 +135,21 @@ export default function MainPage() {
             if (tasks.isError) {
               tasks.reset();
               setTaskDescription(null);
+            }
+          }}
+        />
+      )}
+
+      {dialogState?.type === "export" && currentTable && csvMappings && (
+        <ExportDialog
+          tableStructure={currentTable}
+          csvMappings={csvMappings}
+          onClose={() => setDialogState(null)}
+          onSubmit={(params) => {
+            if (hotRef.current?.table) {
+              writeToCsv(hotRef.current.table, params, (err, output) => {
+                saveToFile(output, `${currentTable.name}.csv`);
+              });
             }
           }}
         />

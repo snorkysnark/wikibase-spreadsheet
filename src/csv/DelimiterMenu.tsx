@@ -11,6 +11,10 @@ export type DelimiterState =
   | { delimiter: "," | "\t"; custom: false }
   | { delimiter: string; custom: true };
 
+export function useDelimiter() {
+  return useState<DelimiterState>({ delimiter: ",", custom: false });
+}
+
 export function DelimiterMenu(props: {
   value?: DelimiterState;
   onChange?(value: DelimiterState): void;
