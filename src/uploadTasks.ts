@@ -32,6 +32,9 @@ function prepareGuid(guid: string): string {
 function toItemData(changes: ItemChanges): any {
   const claims: any[] = [];
   for (const { guid, property, value } of changes.properties) {
+    // Empty string properties are not allowed
+    if (!value) continue;
+
     claims.push({
       ...(guid && { id: prepareGuid(guid) }),
       mainsnak: {
