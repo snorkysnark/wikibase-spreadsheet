@@ -178,7 +178,9 @@ const TableEditor = forwardRef(function TableEditor(
       data,
       dataSchema: {
         itemId: null,
-        label: { value: "" },
+        label: undefined,
+        description: undefined,
+        aliases: undefined,
         properties: Object.fromEntries(
           tableStructure.fields.map((field) => [
             field.property,
@@ -290,6 +292,7 @@ const TableEditor = forwardRef(function TableEditor(
 
         modifications.push(...getUpdateTasks(hot, existingRows.current));
         for (let row = existingRows.current; row < hot.countRows(); row++) {
+          console.log(hot.getDataAtRowProp(row, "label"));
           const changes: ItemChanges = {
             label: hot.getDataAtRowProp(row, "label"),
             description: hot.getDataAtRowProp(row, "description"),

@@ -1,3 +1,4 @@
+import { makeUuid } from "./util";
 import { deleteItem, editEntity } from "./wikibase";
 
 export abstract class NamedTask {
@@ -28,7 +29,7 @@ function prepareGuid(guid: string): string {
   return guid.includes("$") ? guid : guid.replace("-", "$");
 }
 
-function toItemData(changes: ItemChanges): any {
+function toItemData(changes: ItemChanges, labelRequired: boolean): any {
   const claims: any[] = [];
   for (const { guid, property, value } of changes.properties) {
     claims.push({
@@ -64,7 +65,7 @@ export class UpdateTask extends NamedTask {
   async run(): Promise<void> {
     await editEntity({
       id: this.itemId,
-      data: toItemData(this.changes),
+      data: toItemData(this.changes, false),
     });
   }
 }
@@ -79,6 +80,10 @@ export class CreationTask extends NamedTask {
     isInstanceProp: string,
     parentItem: number
   ) {
+    if (!changes.label) {
+      changes.label = makeUuid();
+    }
+
     super(`Creating item ${changes.label}`);
     this.changes = changes;
     this.isInstanceProp = isInstanceProp;
@@ -86,7 +91,7 @@ export class CreationTask extends NamedTask {
   }
 
   async run(): Promise<void> {
-    const data = toItemData(this.changes);
+    const data = toItemData(this.changes, true);
 
     if (!data.claims) data.claims = [];
     data.claims.push({

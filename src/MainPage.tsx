@@ -9,6 +9,7 @@ import { LocalRow, loadTableFromQuery } from "./localTable";
 import { useMutation } from "react-query";
 import { NamedTask } from "./uploadTasks";
 import UploadDialog from "./UploadDialog";
+import { makeUuid } from "./util";
 
 type DialogState = { type: "export" } | { type: "import" };
 
