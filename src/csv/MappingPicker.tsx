@@ -1,25 +1,37 @@
 import { IconButton, MenuItem, Select, TextField } from "@mui/material";
 import { Save, SaveAs, Delete } from "@mui/icons-material";
-import { CsvMapping, OrderedMap, map } from "src/structure";
-import { useState } from "react";
+import {
+  CsvMapping,
+  CsvMappingActions,
+  CsvMappingPartial,
+  OrderedMap,
+  map,
+} from "src/structure";
+import { useLayoutEffect, useState } from "react";
 
 export default function MappingPicker({
-  currentUuid,
+  value,
   onChange,
-  save,
-  saveAs,
-  deleteCurrent,
   csvMappings,
+  alterMappings,
+  makeUpdated,
 }: {
-  currentUuid: string | null;
-  onChange(uuid: string | null): void;
-  save(): void;
-  saveAs(name: string): void;
-  deleteCurrent(): void;
+  value: CsvMapping | null;
+  onChange(mapping: CsvMapping | null): void;
   csvMappings: OrderedMap<CsvMapping>;
+  alterMappings: CsvMappingActions;
+  makeUpdated(): CsvMappingPartial;
 }) {
-  const [saveAsMode, setSaveAsMode] = useState(false);
+  // Uuid to be selected on next render
+  const [selectUuid, setSelectUuid] = useState<string | null>(null);
+  useLayoutEffect(() => {
+    if (selectUuid) {
+      onChange(csvMappings.byUuid[selectUuid]);
+      setSelectUuid(null);
+    }
+  }, [csvMappings, onChange, selectUuid]);
 
+  const [saveAsMode, setSaveAsMode] = useState(false);
   if (saveAsMode) {
     return (
       <TextField
@@ -30,7 +42,10 @@ export default function MappingPicker({
 
           const name = (event.target as HTMLInputElement).value;
           if (name) {
-            saveAs(name);
+            const updated = makeUpdated();
+            updated.name = name;
+
+            setSelectUuid(alterMappings.add(updated));
             setSaveAsMode(false);
           }
         }}
@@ -44,8 +59,11 @@ export default function MappingPicker({
       <Select
         sx={{ flex: "1" }}
         variant="outlined"
-        value={currentUuid}
-        onChange={(event) => onChange(event.target.value)}
+        value={value ? value.uuid : null}
+        onChange={(event) => {
+          const uuid = event.target.value;
+          onChange(uuid ? csvMappings.byUuid[uuid] : null);
+        }}
       >
         {map(csvMappings, (mapping, i) => (
           <MenuItem key={mapping.uuid} value={mapping.uuid}>
@@ -53,12 +71,21 @@ export default function MappingPicker({
           </MenuItem>
         ))}
       </Select>
-      {currentUuid && (
+      {value && (
         <>
-          <IconButton aria-label="delete mapping" onClick={deleteCurrent}>
+          <IconButton
+            aria-label="delete mapping"
+            onClick={() => {
+              alterMappings.delete(value.uuid);
+              onChange(null);
+            }}
+          >
             <Delete />
           </IconButton>
-          <IconButton aria-label="save mapping as">
+          <IconButton
+            aria-label="save mapping as"
+            onClick={() => setSaveAsMode(true)}
+          >
             <SaveAs />
           </IconButton>
         </>
@@ -66,8 +93,9 @@ export default function MappingPicker({
       <IconButton
         aria-label="save mapping"
         onClick={() => {
-          if (currentUuid) {
-            save();
+          if (value) {
+            alterMappings.update(value.uuid, makeUpdated());
+            setSelectUuid(value.uuid);
           } else {
             setSaveAsMode(true);
           }

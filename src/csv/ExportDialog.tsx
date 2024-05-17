@@ -7,13 +7,7 @@ import {
   TextField,
 } from "@mui/material";
 import { DragIndicator } from "@mui/icons-material";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useLayoutEffect, useState } from "react";
 import {
   DelimiterMenu,
   parseDelimiterState,
@@ -22,10 +16,8 @@ import {
 import {
   CsvMapping,
   CsvMappingActions,
-  CsvMappingPartial,
   FieldMapping,
   OrderedMap,
-  SettingsActions,
   TableField,
   TableStructure,
 } from "src/structure";
@@ -134,21 +126,6 @@ function updatedJsonMappings(
     }));
 }
 
-function updatedMapping({
-  savedMapping,
-  delimiter,
-  fields,
-}: {
-  savedMapping: CsvMapping;
-  delimiter: string;
-  fields: ExportField[];
-}): CsvMapping {
-  return produce(savedMapping, (mapping) => {
-    mapping.delimiter = delimiter;
-    mapping.pairs = updatedJsonMappings(savedMapping.pairs, fields);
-  });
-}
-
 export function ExportDialog({
   tableStructure,
   csvMappings,
@@ -162,19 +139,15 @@ export function ExportDialog({
   onClose(): void;
   onSubmit(params: ExportParameters): void;
 }) {
-  const [mappingUuid, setMappingUuid] = useState<string | null>(null);
-  const savedMapping = useMemo(
-    () => (mappingUuid ? csvMappings.byUuid[mappingUuid] : null),
-    [csvMappings, mappingUuid]
-  );
+  const [mapping, setMapping] = useState<CsvMapping | null>(null);
 
   const [delimiterState, setDelimiterState] = useDelimiter();
   const [fields, alterFields] = useList<ExportField>([]);
 
   useLayoutEffect(() => {
-    if (savedMapping) {
-      setDelimiterState(parseDelimiterState(savedMapping.delimiter));
-      alterFields.set(loadJsonMappings(tableStructure, savedMapping.pairs));
+    if (mapping) {
+      setDelimiterState(parseDelimiterState(mapping.delimiter));
+      alterFields.set(loadJsonMappings(tableStructure, mapping.pairs));
     } else {
       alterFields.set([
         {
@@ -187,13 +160,13 @@ export function ExportDialog({
         })),
       ]);
     }
-  }, [tableStructure, savedMapping]);
+  }, [tableStructure, mapping]);
 
   const makeUpdatedMapping = () => {
     return {
-      name: savedMapping?.name || "",
+      name: mapping?.name || "",
       delimiter: delimiterState.delimiter,
-      pairs: updatedJsonMappings(savedMapping?.pairs, fields),
+      pairs: updatedJsonMappings(mapping?.pairs, fields),
     };
   };
 
@@ -202,18 +175,11 @@ export function ExportDialog({
       <DialogTitle>Export CSV</DialogTitle>
       <DialogContent>
         <MappingPicker
-          currentUuid={mappingUuid}
-          onChange={setMappingUuid}
+          value={mapping}
+          onChange={setMapping}
           csvMappings={csvMappings}
-          save={() => {
-            alterMappings.update(mappingUuid!, makeUpdatedMapping());
-          }}
-          saveAs={(name) => {
-            const newMapping = makeUpdatedMapping();
-            newMapping.name = name;
-            setMappingUuid(alterMappings.add(newMapping));
-          }}
-          deleteCurrent={() => alterMappings.delete(mappingUuid!)}
+          alterMappings={alterMappings}
+          makeUpdated={makeUpdatedMapping}
         />
         <DelimiterMenu value={delimiterState} onChange={setDelimiterState} />
         <table>
