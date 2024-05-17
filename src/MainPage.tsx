@@ -55,6 +55,7 @@ export default function MainPage() {
           reload={() => {
             queryAction.execute();
           }}
+          upload={() => console.log(hotRef.current?.getModifications())}
           csvExport={() => setDialogState({ type: "export" })}
           csvImport={() => setDialogState({ type: "import" })}
         />
@@ -65,6 +66,7 @@ export default function MainPage() {
                 ref={hotRef}
                 data={tableQuery.result}
                 tableStructure={currentTable}
+                isInstanceProp={settings.isInstanceProperty!}
               />
             )}
           </div>

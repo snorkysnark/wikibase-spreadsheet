@@ -50,7 +50,7 @@ export interface LocalProperty {
   value: string | null;
 }
 
-function lastUriPart(uri: string): string {
+export function lastUriPart(uri: string): string {
   const match = /\/([^\/]+)$/.exec(uri);
   if (match) {
     return match[1];
@@ -58,7 +58,7 @@ function lastUriPart(uri: string): string {
   throw new Error("Invalid uri: " + uri);
 }
 
-function itemIdFromUri(uri: string): number {
+export function itemIdFromUri(uri: string): number {
   const match = /Q(\d+)$/.exec(uri);
   if (match) {
     return +match[1];

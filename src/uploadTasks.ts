@@ -18,6 +18,8 @@ export interface PropertyChanges {
 
 export interface ItemChanges {
   label?: string;
+  description?: string;
+  aliases?: string;
   properties: PropertyChanges[];
 }
 

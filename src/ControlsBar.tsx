@@ -25,6 +25,7 @@ export default function ControlsBar({
   addRow,
   deleteRow,
   reload,
+  upload,
   csvExport,
   csvImport,
 }: {
@@ -33,6 +34,7 @@ export default function ControlsBar({
   tables: TableStructure[];
   addRow(): void;
   deleteRow(): void;
+  upload(): void;
   reload(): void;
   csvExport(): void;
   csvImport(): void;
@@ -70,7 +72,7 @@ export default function ControlsBar({
         <IconButton aria-label="delete row" onClick={deleteRow}>
           <RemoveIcon />
         </IconButton>
-        <IconButton aria-label="upload">
+        <IconButton aria-label="upload" onClick={upload}>
           <UploadIcon />
         </IconButton>
         <IconButton aria-label="reload" onClick={reload}>

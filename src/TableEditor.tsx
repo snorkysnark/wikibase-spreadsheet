@@ -10,13 +10,22 @@ import { TableStructure } from "./structure";
 import Handsontable from "handsontable";
 import { CellMeta, CellProperties } from "node_modules/handsontable/settings";
 import { makeUuid, nonNullish, unique } from "./util";
-import { LocalRow } from "./localTable";
+import { LocalRow, itemIdFromUri } from "./localTable";
+import {
+  CreationTask,
+  DeletionTask,
+  ItemChanges,
+  NamedTask,
+  PropertyChanges,
+  UpdateTask,
+} from "./uploadTasks";
 
 export interface TableEditorHandle {
   table: Handsontable | null;
   columnSettings: ColumnSettings[];
   addDefaultRow(): void;
   toggleRowDeletion(): void;
+  getModifications(): NamedTask[];
 }
 
 export interface ColumnSettings {
@@ -25,6 +34,19 @@ export interface ColumnSettings {
 }
 
 type CellChangeString = [number, string, any, any];
+
+function cellIsEdited(
+  hot: Handsontable,
+  meta: CellMeta,
+  row: number,
+  column: number
+): boolean {
+  const originalValue = meta.originalValue;
+  return (
+    originalValue !== undefined &&
+    originalValue !== hot.getDataAtCell(row, column)
+  );
+}
 
 function extendCellSettings(
   hot: Handsontable,
@@ -42,11 +64,7 @@ function extendCellSettings(
     return { className: "deleted", readOnly: true };
   }
 
-  const originalValue = settings.originalValue;
-  if (
-    originalValue !== undefined &&
-    originalValue !== hot.getDataAtCell(row, column)
-  ) {
+  if (cellIsEdited(hot, settings, row, column)) {
     return { className: "edited" };
   }
 
@@ -75,13 +93,55 @@ function resetRowToOriginalValue(hot: Handsontable, row: number) {
   }
 }
 
+function* getUpdateTasks(
+  hot: Handsontable,
+  existingRows: number
+): Generator<UpdateTask> {
+  for (let row = 0; row < existingRows; row++) {
+    const itemId = hot.getDataAtRowProp(row, "itemId");
+
+    let changes: ItemChanges | null = null;
+
+    for (const meta of hot.getCellMetaAtRow(row)) {
+      if (!cellIsEdited(hot, meta, row, meta.col)) continue;
+      if (!changes) changes = { properties: [] };
+
+      const value = hot.getDataAtCell(meta.row, meta.col);
+      const propParts = (meta.prop as string).split(".");
+
+      switch (propParts[0]) {
+        case "label":
+          changes.label = value;
+          break;
+        case "description":
+          changes.description = value;
+          break;
+        case "aliases":
+          changes.aliases = value;
+          break;
+        case "properties":
+          const property = propParts[1];
+          const guid = hot.getDataAtRowProp(
+            row,
+            [...propParts.slice(0, propParts.length - 1), "guid"].join(".")
+          );
+          changes.properties.push({ guid, property, value });
+      }
+    }
+
+    if (changes) yield new UpdateTask(`Q${itemId}`, changes);
+  }
+}
+
 const TableEditor = forwardRef(function TableEditor(
   {
     data,
     tableStructure,
+    isInstanceProp,
   }: {
     data: LocalRow[];
     tableStructure: TableStructure;
+    isInstanceProp: string;
   },
   ref: ForwardedRef<TableEditorHandle>
 ) {
@@ -89,6 +149,7 @@ const TableEditor = forwardRef(function TableEditor(
   const hotRef = useRef<Handsontable | null>(null);
 
   const itemsForDeletion = useRef(new Set<number>());
+  const existingRows = useRef(0);
 
   const colSettings = useMemo<ColumnSettings[]>(
     () =>
@@ -111,6 +172,7 @@ const TableEditor = forwardRef(function TableEditor(
 
   useEffect(() => {
     itemsForDeletion.current.clear();
+    existingRows.current = data.length;
 
     const hot = new Handsontable(container.current!, {
       colHeaders: [...colSettings.map((col) => col.name)],
@@ -218,6 +280,42 @@ const TableEditor = forwardRef(function TableEditor(
 
         hot.render();
       }
+    },
+    getModifications() {
+      const modifications: NamedTask[] = [];
+
+      const hot = hotRef.current;
+      if (hot) {
+        const parentItemId = itemIdFromUri(tableStructure.parentItem);
+
+        modifications.push(...getUpdateTasks(hot, existingRows.current));
+        for (let row = existingRows.current; row < hot.countRows(); row++) {
+          const changes: ItemChanges = {
+            label: hot.getDataAtRowProp(row, "label"),
+            description: hot.getDataAtRowProp(row, "description"),
+            aliases: hot.getDataAtRowProp(row, "aliases"),
+            properties: tableStructure.fields
+              .filter((field) => field.property.startsWith("P"))
+              .map((field) => ({
+                property: field.property,
+                value: hot.getDataAtRowProp(
+                  row,
+                  `properties.${field.property}.value`
+                ),
+              }))
+              .filter(({ value }) => value !== null),
+          };
+          modifications.push(
+            new CreationTask(changes, isInstanceProp, parentItemId)
+          );
+        }
+
+        for (const itemId of itemsForDeletion.current) {
+          modifications.push(new DeletionTask(`Q${itemId}`));
+        }
+      }
+
+      return modifications;
     },
   }));
 
