@@ -28,33 +28,36 @@ export function DelimiterMenu(props: {
   return (
     <>
       <FormHelperText>Delimiter</FormHelperText>
-      <RadioGroup
-        row
-        value={state.custom ? "other" : state.delimiter}
-        onChange={(event) => {
-          if (event.target.value === "other") {
-            setState({ delimiter: "", custom: true });
-          } else {
-            setState({
-              delimiter: event.target.value as "," | "\t",
-              custom: false,
-            });
-          }
-        }}
-      >
-        <FormControlLabel control={<Radio />} label="Comma" value="," />
-        <FormControlLabel control={<Radio />} label="Tab" value={"\t"} />
-        <FormControlLabel control={<Radio />} label="Other" value="other" />
-      </RadioGroup>
-      {state.custom && (
-        <TextField
-          value={state.delimiter}
-          onChange={(event) =>
-            setState({ delimiter: event.target.value, custom: true })
-          }
-          sx={{ display: "block" }}
-        />
-      )}
+      <div css={{ display: "flex" }}>
+        <RadioGroup
+          sx={{ display: "inline" }}
+          row
+          value={state.custom ? "other" : state.delimiter}
+          onChange={(event) => {
+            if (event.target.value === "other") {
+              setState({ delimiter: "", custom: true });
+            } else {
+              setState({
+                delimiter: event.target.value as "," | "\t",
+                custom: false,
+              });
+            }
+          }}
+        >
+          <FormControlLabel control={<Radio />} label="Comma" value="," />
+          <FormControlLabel control={<Radio />} label="Tab" value={"\t"} />
+          <FormControlLabel control={<Radio />} label="Other" value="other" />
+        </RadioGroup>
+        {state.custom && (
+          <TextField
+            sx={{ flexGrow: "1", width: "5em" }}
+            value={state.delimiter}
+            onChange={(event) =>
+              setState({ delimiter: event.target.value, custom: true })
+            }
+          />
+        )}
+      </div>
       <input type="hidden" name="delimiter" value={state.delimiter} />
     </>
   );

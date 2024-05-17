@@ -75,6 +75,7 @@ export function ImportDialog({
       <DialogContent>
         <DelimiterMenu value={delimiterState} onChange={setDelimiterState} />
         <MuiFileInput
+          sx={{ width: "100%" }}
           value={file}
           onChange={setFile}
           placeholder="Attach File"

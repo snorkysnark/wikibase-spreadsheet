@@ -7,7 +7,7 @@ import {
   TextField,
 } from "@mui/material";
 import { DragIndicator } from "@mui/icons-material";
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useState } from "react";
 import { DelimiterMenu, useDelimiter } from "./DelimiterMenu";
 import {
   CsvMapping,
@@ -20,6 +20,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import SortableList from "src/structurepanel/SortableList";
 import { produce } from "immer";
+import MappingPicker from "./MappingPicker";
 
 export interface ExportField {
   csvName: string;
@@ -99,6 +100,8 @@ export function ExportDialog({
   }, [tableStructure.fields]);
 
   const [delimiterState, setDelimiterState] = useDelimiter();
+
+  const [mappingUuid, setMappingUuid] = useState<string | null>(null);
 
   return (
     <Dialog open={true} onClose={onClose}>
