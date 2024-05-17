@@ -9,8 +9,9 @@ import { LocalRow, loadTableFromQuery } from "./localTable";
 import { useMutation } from "react-query";
 import { NamedTask } from "./uploadTasks";
 import UploadDialog from "./UploadDialog";
-import { ExportDialog, writeToCsv } from "./csv";
+import { ExportDialog, ImportDialog, writeToCsv } from "./csv";
 import { saveToFile } from "./util";
+import { applyCsv } from "./csv/io";
 
 type DialogState = { type: "export" } | { type: "import" };
 
@@ -151,6 +152,25 @@ export default function MainPage() {
                 saveToFile(output, `${currentTable.name}.csv`);
               });
             }
+          }}
+        />
+      )}
+
+      {dialogState?.type === "import" && currentTable && (
+        <ImportDialog
+          tableStructure={currentTable}
+          onClose={() => setDialogState(null)}
+          onSubmit={(file, params) => {
+            const table = hotRef.current?.table;
+            if (!table) return;
+
+            const reader = new FileReader();
+            reader.readAsText(file);
+            reader.onload = () => {
+              if (table.isDestroyed) return;
+              applyCsv(table, reader.result as string, params);
+              setDialogState(null);
+            };
           }}
         />
       )}

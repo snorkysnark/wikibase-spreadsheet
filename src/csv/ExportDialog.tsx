@@ -106,6 +106,13 @@ export function ExportDialog({
       <DialogContent>
         <DelimiterMenu value={delimiterState} onChange={setDelimiterState} />
         <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Editor</th>
+              <th>CSV</th>
+            </tr>
+          </thead>
           <tbody>
             <SortableList
               ids={fields.map((exportField) => exportField.field.uuid)}

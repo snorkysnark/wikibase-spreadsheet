@@ -11,34 +11,32 @@ import {
 import {
   AttachFile as AttachFileIcon,
   Key as KeyIcon,
-  Settings as IconGear,
 } from "@mui/icons-material";
 import { MuiFileInput } from "mui-file-input";
-import { useEffect, useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { DelimiterMenu, DelimiterState } from "./DelimiterMenu";
-import { TableStructure } from "src/structure";
+import { TableField, TableStructure } from "src/structure";
 import { useCsvHeaders } from "./hooks";
 import { produce } from "immer";
 
-interface CsvField {
+export interface ImportField<AllowNull extends boolean = false> {
   isKey: boolean;
-  hotName: string;
-  hotMapping: HotField | null;
+  csvName: string;
+  hotMapping: AllowNull extends true ? TableField | null : TableField;
 }
 
-type HotFieldKind = "special" | "property";
-
-interface HotField {
-  name: string;
-  propPath: string;
-  kind: HotFieldKind;
+export interface ImportParameters {
+  delimiter: string;
+  fields: ImportField[];
 }
 
 export function ImportDialog({
   onClose,
+  onSubmit,
   tableStructure,
 }: {
   onClose(): void;
+  onSubmit(file: File, params: ImportParameters): void;
   tableStructure: TableStructure;
 }) {
   const [file, setFile] = useState<File | null>(null);
@@ -48,28 +46,25 @@ export function ImportDialog({
   });
 
   const headers = useCsvHeaders(file, delimiterState.delimiter);
-  const [csvFields, setCsvFields] = useState<CsvField[] | null>(null);
-  useEffect(() => {
+  const [csvFields, setCsvFields] = useState<ImportField<boolean>[] | null>(
+    null
+  );
+  useLayoutEffect(() => {
     setCsvFields(
       headers
         ? headers.map((header) => ({
             isKey: false,
-            hotName: header,
+            csvName: header,
             hotMapping: null,
           }))
         : null
     );
   }, [headers]);
 
-  const hotFields = useMemo<HotField[]>(
+  const hotFields = useMemo<TableField[]>(
     () => [
-      { name: "itemID", propPath: "itemID", kind: "special" },
-      { name: "label", propPath: "label.value", kind: "special" },
-      ...tableStructure.fields.map<HotField>((field) => ({
-        name: field.name,
-        propPath: `properties.${field.property}.value`,
-        kind: "property",
-      })),
+      { uuid: "itemId", name: "itemId", property: "itemId" },
+      ...tableStructure.fields,
     ],
     [tableStructure]
   );
@@ -88,10 +83,17 @@ export function ImportDialog({
             startAdornment: <AttachFileIcon />,
           }}
         />
-        <table>
-          <tbody>
-            {csvFields &&
-              csvFields.map((csvField, i) => (
+        {csvFields && (
+          <table>
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>CSV</th>
+                <th>Editor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {csvFields.map((csvField, i) => (
                 <tr key={i}>
                   <td>
                     <ToggleButton
@@ -109,15 +111,28 @@ export function ImportDialog({
                       {csvField.isKey && <KeyIcon />}
                     </ToggleButton>
                   </td>
-                  <td>{csvField.hotName}</td>
+                  <td>{csvField.csvName}</td>
                   <td css={{ width: "100%" }}>
                     <Autocomplete
                       options={hotFields}
+                      value={csvField.hotMapping}
+                      onChange={(event, value) =>
+                        setCsvFields(
+                          produce((fields) => {
+                            fields![i].hotMapping = value;
+                          })
+                        )
+                      }
                       getOptionLabel={(field) => field.name}
                       renderInput={(params) => <TextField {...params} />}
                       renderOption={(props, option) => (
-                        <li {...props}>
-                          {option.kind === "special" && <IconGear />}
+                        <li
+                          {...props}
+                          css={{
+                            fontWeight:
+                              option.uuid === "itemId" ? "bold" : undefined,
+                          }}
+                        >
                           {option.name}
                         </li>
                       )}
@@ -125,11 +140,22 @@ export function ImportDialog({
                   </td>
                 </tr>
               ))}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        )}
       </DialogContent>
       <DialogActions>
-        <Button>Merge</Button>
+        <Button
+          disabled={!file || !csvFields}
+          onClick={() =>
+            onSubmit(file!, {
+              delimiter: delimiterState.delimiter,
+              fields: csvFields!.filter((csvField) => !!csvField.hotMapping),
+            })
+          }
+        >
+          Merge
+        </Button>
       </DialogActions>
     </Dialog>
   );
