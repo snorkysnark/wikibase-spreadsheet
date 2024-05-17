@@ -66,6 +66,7 @@ services:
   mysql:
     image: "${MYSQL_IMAGE_NAME}"
     restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
     volumes:
       - mediawiki-mysql-data:/var/lib/mysql
     environment:
