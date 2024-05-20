@@ -40,21 +40,26 @@ function toDatavalue(value: any, datatype: string | undefined): any {
   }
 }
 
+function isEmptyValue(value: any): boolean {
+  return value === "" || value === null || value == undefined;
+}
+
 function toItemData(changes: ItemChanges): any {
   const claims: any[] = [];
   for (const { guid, property, value, datatype } of changes.properties) {
-    // Empty string properties are not allowed
-    if (!value) continue;
-
     claims.push({
       ...(guid && { id: prepareGuid(guid) }),
-      mainsnak: {
-        snaktype: "value",
-        property,
-        datavalue: toDatavalue(value, datatype),
-      },
-      type: "statement",
-      rank: "normal",
+      ...(isEmptyValue(value) && guid
+        ? { remove: ":" }
+        : {
+            mainsnak: {
+              snaktype: "value",
+              property,
+              datavalue: toDatavalue(value, datatype),
+            },
+            type: "statement",
+            rank: "normal",
+          }),
     });
   }
 

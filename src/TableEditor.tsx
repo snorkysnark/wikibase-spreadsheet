@@ -313,7 +313,6 @@ const TableEditor = forwardRef(function TableEditor(
           ...getUpdateTasks(hot, colSettings, existingRows.current)
         );
         for (let row = existingRows.current; row < hot.countRows(); row++) {
-          console.log(hot.getDataAtRowProp(row, "label"));
           const changes: ItemChanges = {
             label: hot.getDataAtRowProp(row, "label"),
             description: hot.getDataAtRowProp(row, "description"),
