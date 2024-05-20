@@ -13,9 +13,9 @@ import {
   TableStructure,
   TableStructurePartial,
 } from "src/structure";
-import { EntitySearch } from "./EntitySearch";
+import { EntitySearch, MinimalEntityData } from "./EntitySearch";
 import { MouseEventHandler, useCallback, useEffect, useState } from "react";
-import { NamedItem, NamedItemValue } from "./NamedItem";
+import { NamedEntity, NamedEntityValue } from "./NamedItem";
 import { useList } from "@react-hookz/web";
 import SortableList from "./SortableList";
 import { useSortable } from "@dnd-kit/sortable";
@@ -29,7 +29,14 @@ interface TableFieldTmp {
   uuid: string;
   name: string;
   property: string | null;
+  datatype?: string;
 }
+
+const extraPropertyOptions: MinimalEntityData[] = [
+  { id: "label" },
+  { id: "description" },
+  { id: "aliases" },
+];
 
 function EditTableField({
   field,
@@ -59,19 +66,20 @@ function EditTableField({
         {...attributes}
         {...listeners}
       />
-      <NamedItem
+      <NamedEntity
         type="property"
-        extraOptions={[
-          { id: "label" },
-          { id: "description" },
-          { id: "aliases" },
-        ]}
-        value={{ item: field.property, name: field.name }}
-        onChange={({ item, name }) =>
+        extraOptions={extraPropertyOptions}
+        value={{
+          id: field.property,
+          name: field.name,
+          datatype: field.datatype,
+        }}
+        onChange={({ id, name, datatype }) =>
           onUpdate({
             uuid: field.uuid,
-            property: item,
+            property: id,
             name,
+            datatype,
           })
         }
       />
@@ -95,8 +103,8 @@ export default function StructurePanel(props: {
   onChangeStucture: (tableStructure: TableStructurePartial) => void;
   onDelete: () => void;
 }) {
-  const [parentInfo, setParentInfo] = useState<NamedItemValue>({
-    item: null,
+  const [parentInfo, setParentInfo] = useState<NamedEntityValue>({
+    id: null,
     name: "",
   });
 
@@ -105,18 +113,18 @@ export default function StructurePanel(props: {
   useEffect(() => {
     if (props.tableStructure) {
       setParentInfo({
-        item: props.tableStructure.parentItem,
+        id: props.tableStructure.parentItem,
         name: props.tableStructure.name,
       });
       fieldsControl.set(props.tableStructure.fields);
     } else {
-      setParentInfo({ item: null, name: "" });
+      setParentInfo({ id: null, name: "" });
       fieldsControl.set([]);
     }
   }, [props.tableStructure]);
 
   const isValidStructure = () => {
-    if (!parentInfo.name || !parentInfo.item) return false;
+    if (!parentInfo.name || !parentInfo.id) return false;
     for (const field of fields) {
       if (!field.name || !field.property) return false;
     }
@@ -132,7 +140,7 @@ export default function StructurePanel(props: {
   const updateFieldAt = useCallback(
     (index: FieldIndex, id: string | null, name: string) => {
       if (index === "table") {
-        setParentInfo({ item: id, name });
+        setParentInfo({ id: id, name });
       } else {
         fieldsControl.set(
           produce((fields) => {
@@ -186,7 +194,7 @@ export default function StructurePanel(props: {
             <Typography variant="h5">) of</Typography>
           </div>
           <div css={{ display: "flex", alignItems: "center" }}>
-            <NamedItem
+            <NamedEntity
               type="item"
               value={parentInfo}
               onChange={setParentInfo}
@@ -248,7 +256,7 @@ export default function StructurePanel(props: {
             onClick={() =>
               props.onChangeStucture({
                 name: parentInfo.name,
-                parentItem: parentInfo.item!,
+                parentItem: parentInfo.id!,
                 fields: fields as TableField[],
               })
             }

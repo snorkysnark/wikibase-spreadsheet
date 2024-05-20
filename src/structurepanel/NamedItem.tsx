@@ -1,18 +1,20 @@
 import { useRef } from "react";
 import { EntityType } from "src/wikibase";
-import { EntitySearch, HasId } from "./EntitySearch";
+import { EntitySearch, MinimalEntityData } from "./EntitySearch";
 import { TextField } from "@mui/material";
+import { produce } from "immer";
 
-export interface NamedItemValue {
-  item: string | null;
+export interface NamedEntityValue {
+  id: string | null;
   name: string;
+  datatype?: string;
 }
 
-export function NamedItem(props: {
+export function NamedEntity(props: {
   type: EntityType;
-  value: NamedItemValue;
-  onChange(value: NamedItemValue): void;
-  extraOptions?: HasId[];
+  value: NamedEntityValue;
+  onChange(value: NamedEntityValue): void;
+  extraOptions?: MinimalEntityData[];
 }) {
   const textFieldRef = useRef<HTMLDivElement>(null);
 
@@ -25,11 +27,12 @@ export function NamedItem(props: {
         popperWidth={(width) =>
           width + (textFieldRef.current?.clientWidth || 0)
         }
-        value={props.value.item}
-        onChange={(item) =>
+        value={props.value.id}
+        onChange={(entity) =>
           props.onChange({
-            item: item && item.data.id,
-            name: item?.data.label ?? item?.data.id ?? props.value.name,
+            id: entity && entity.data.id,
+            name: entity?.data.label ?? entity?.data.id ?? props.value.name,
+            datatype: entity?.data.datatype,
           })
         }
       />
@@ -40,10 +43,11 @@ export function NamedItem(props: {
         ref={textFieldRef}
         value={props.value.name}
         onChange={(event) =>
-          props.onChange({
-            item: props.value.item,
-            name: event.target.value,
-          })
+          props.onChange(
+            produce(props.value, (value) => {
+              value.name = event.target.value;
+            })
+          )
         }
       />
     </div>

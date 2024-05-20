@@ -6,20 +6,21 @@ import { searchEntities, SearchEntitiesParams, EntityType } from "src/wikibase";
 import { Popper, SxProps, TextField, Typography } from "@mui/material";
 import { useAsync, useDebouncedEffect } from "@react-hookz/web";
 
-export interface HasId {
+export interface MinimalEntityData {
   id: string;
   label?: string;
+  datatype?: string;
 }
 
 export interface EntityValue {
   isSpecial: boolean;
-  data: HasId;
+  data: MinimalEntityData;
 }
 
 export function EntitySearch(props: {
   type: EntityType;
   value?: EntityValue | string | null;
-  extraOptions?: HasId[];
+  extraOptions?: MinimalEntityData[];
   onChange?: (value: EntityValue | null) => void;
   sx?: SxProps;
   popperWidth?: (width: number) => number;

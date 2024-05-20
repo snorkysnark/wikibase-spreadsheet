@@ -5,6 +5,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
 } from "@mui/material";
 import { FormEvent } from "react";
@@ -32,6 +36,7 @@ function BlockTextField(props: Parameters<typeof TextField>[0]) {
 interface FormValues {
   label: string;
   description: string;
+  datatype: string;
 }
 
 export default function CreateEntityDialog({
@@ -75,7 +80,7 @@ export default function CreateEntityDialog({
         onSubmit: (event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
 
-          const { label, description } = Object.fromEntries(
+          const { label, description, datatype } = Object.fromEntries(
             new FormData(event.currentTarget)
           ) as unknown as FormValues;
           if (label) {
@@ -86,7 +91,7 @@ export default function CreateEntityDialog({
                   labels: label,
                   ...(description && { descriptions: description }),
                 }),
-                datatype: "string",
+                datatype,
               },
             });
           }
@@ -109,6 +114,18 @@ export default function CreateEntityDialog({
           multiline
           minRows={2}
         />
+        <FormControl variant="filled" fullWidth sx={{ marginTop: "1em" }}>
+          <InputLabel id="label-datatype">Datatype</InputLabel>
+          <Select
+            labelId="label-datatype"
+            label="Datatype"
+            name="datatype"
+            defaultValue="string"
+          >
+            <MenuItem value="string">String</MenuItem>
+            <MenuItem value="quantity">Quantity</MenuItem>
+          </Select>
+        </FormControl>
         {entityMutation.error && (
           <Alert severity="error">
             {entityMutation.error instanceof WikibaseError

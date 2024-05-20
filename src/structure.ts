@@ -53,6 +53,7 @@ export interface TableField {
   uuid: string;
   name: string;
   property: string;
+  datatype?: string;
 }
 
 export interface SettingsActions {
