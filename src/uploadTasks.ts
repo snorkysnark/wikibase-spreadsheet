@@ -15,6 +15,7 @@ export interface PropertyChanges {
   guid?: string | null;
   property: string;
   value: string;
+  datatype?: string;
 }
 
 export interface ItemChanges {
@@ -29,9 +30,19 @@ function prepareGuid(guid: string): string {
   return guid.includes("$") ? guid : guid.replace("-", "$");
 }
 
+function toDatavalue(value: any, datatype: string | undefined): any {
+  switch (datatype) {
+    case "quantity":
+      // Other units (percent, kilometer, etc.) currently unsupported
+      return { type: datatype, value: { amount: value, unit: "1" } };
+    default:
+      return { type: "string", value: value };
+  }
+}
+
 function toItemData(changes: ItemChanges): any {
   const claims: any[] = [];
-  for (const { guid, property, value } of changes.properties) {
+  for (const { guid, property, value, datatype } of changes.properties) {
     // Empty string properties are not allowed
     if (!value) continue;
 
@@ -40,7 +51,7 @@ function toItemData(changes: ItemChanges): any {
       mainsnak: {
         snaktype: "value",
         property,
-        datavalue: { type: "string", value },
+        datavalue: toDatavalue(value, datatype),
       },
       type: "statement",
       rank: "normal",

@@ -91,8 +91,15 @@ function resetRowToOriginalValue(hot: Handsontable, row: number) {
   }
 }
 
+interface ColumnSettingsExtended {
+  name: string;
+  datatype?: string;
+  settings: ColumnSettings;
+}
+
 function* getUpdateTasks(
   hot: Handsontable,
+  colSettings: ColumnSettingsExtended[],
   existingRows: number
 ): Generator<UpdateTask> {
   for (let row = 0; row < existingRows; row++) {
@@ -123,7 +130,12 @@ function* getUpdateTasks(
             row,
             [...propParts.slice(0, propParts.length - 1), "guid"].join(".")
           );
-          changes.properties.push({ guid, property, value });
+          changes.properties.push({
+            guid,
+            property,
+            value,
+            datatype: colSettings[meta.col].datatype,
+          });
       }
     }
 
@@ -158,11 +170,12 @@ const TableEditor = forwardRef(function TableEditor(
   const itemsForDeletion = useRef(new Set<string>());
   const existingRows = useRef(0);
 
-  const colSettings = useMemo<{ name: string; settings: ColumnSettings }[]>(
+  const colSettings = useMemo<ColumnSettingsExtended[]>(
     () =>
       tableStructure.fields.map((field) => {
         return {
           name: field.name,
+          datatype: field.datatype,
           settings: {
             data: propertyToPath(field.property),
             type: getHandsontableDatatype(field.datatype),
@@ -296,7 +309,9 @@ const TableEditor = forwardRef(function TableEditor(
       if (hot) {
         const parentItemId = itemIdFromUri(tableStructure.parentItem);
 
-        modifications.push(...getUpdateTasks(hot, existingRows.current));
+        modifications.push(
+          ...getUpdateTasks(hot, colSettings, existingRows.current)
+        );
         for (let row = existingRows.current; row < hot.countRows(); row++) {
           console.log(hot.getDataAtRowProp(row, "label"));
           const changes: ItemChanges = {
@@ -311,6 +326,7 @@ const TableEditor = forwardRef(function TableEditor(
                   row,
                   `properties.${field.property}.value`
                 ),
+                datatype: field.datatype,
               }))
               .filter(({ value }) => value !== null),
           };
