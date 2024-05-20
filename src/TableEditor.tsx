@@ -234,7 +234,6 @@ const TableEditor = forwardRef(function TableEditor(
           const column = hot.propToCol(prop) as number;
           const originalValue = hot.getCellMeta(row, column).originalValue;
 
-          hot.setDataAtCell(row, column, nextValue, "auto");
           hot.setCellMeta(
             row,
             column,
