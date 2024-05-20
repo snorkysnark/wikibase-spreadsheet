@@ -8,7 +8,11 @@ import {
 } from "react";
 import { TableStructure } from "./structure";
 import Handsontable from "handsontable";
-import { CellMeta, CellProperties } from "node_modules/handsontable/settings";
+import {
+  CellMeta,
+  CellProperties,
+  ColumnSettings,
+} from "node_modules/handsontable/settings";
 import { makeUuid, nonNullish, unique } from "./util";
 import { LocalRow, itemIdFromUri, propertyToPath } from "./localTable";
 import {
@@ -25,11 +29,6 @@ export interface TableEditorHandle {
   addDefaultRow(): void;
   toggleRowDeletion(): void;
   getModifications(): NamedTask[];
-}
-
-export interface ColumnSettings {
-  name: string;
-  prop: string;
 }
 
 type CellChangeString = [number, string, any, any];
@@ -132,6 +131,15 @@ function* getUpdateTasks(
   }
 }
 
+function getHandsontableDatatype(wikibaseType: string | undefined) {
+  switch (wikibaseType) {
+    case "quantity":
+      return "numeric";
+    default:
+      return "text";
+  }
+}
+
 const TableEditor = forwardRef(function TableEditor(
   {
     data,
@@ -150,12 +158,15 @@ const TableEditor = forwardRef(function TableEditor(
   const itemsForDeletion = useRef(new Set<string>());
   const existingRows = useRef(0);
 
-  const colSettings = useMemo<ColumnSettings[]>(
+  const colSettings = useMemo<{ name: string; settings: ColumnSettings }[]>(
     () =>
       tableStructure.fields.map((field) => {
         return {
           name: field.name,
-          prop: propertyToPath(field.property),
+          settings: {
+            data: propertyToPath(field.property),
+            type: getHandsontableDatatype(field.datatype),
+          },
         };
       }),
     [tableStructure]
@@ -169,7 +180,7 @@ const TableEditor = forwardRef(function TableEditor(
     itemsForDeletion.current.clear();
 
     const hot = new Handsontable(container.current!, {
-      colHeaders: [...colSettings.map((col) => col.name)],
+      colHeaders: [...colSettings.map(({ name }) => name)],
       data,
       dataSchema: {
         itemId: null,
@@ -183,7 +194,7 @@ const TableEditor = forwardRef(function TableEditor(
           ])
         ),
       },
-      columns: [...colSettings.map((col) => ({ data: col.prop }))],
+      columns: [...colSettings.map(({ settings }) => settings)],
       outsideClickDeselects: false,
       licenseKey: "non-commercial-and-evaluation",
     });
