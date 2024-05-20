@@ -86,9 +86,9 @@ export async function loadTableFromQuery(
     if (binding.item.value !== lastItemUri) {
       rows.push({
         itemId: lastUriPart(binding.item.value),
-        label: binding.label?.value,
-        description: binding.description?.value,
-        aliases: binding.aliases?.value,
+        label: binding.label?.value ?? null,
+        description: binding.description?.value ?? null,
+        aliases: binding.aliases?.value ?? null,
         properties: Object.fromEntries(
           properties.map((propertyId) => {
             const propertyObject = binding[propertyId];
