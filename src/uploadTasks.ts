@@ -40,8 +40,21 @@ function toDatavalue(value: any, datatype: string | undefined): any {
   }
 }
 
-function isEmptyValue(value: any): boolean {
-  return value === "" || value === null || value === undefined;
+function toClaimData({ guid, value, property, datatype }: PropertyChanges) {
+  return {
+    ...(guid && { id: prepareGuid(guid) }),
+    ...(value === "" || value === null
+      ? { remove: ":" }
+      : {
+          mainsnak: {
+            snaktype: "value",
+            property,
+            datavalue: toDatavalue(value, datatype),
+          },
+          type: "statement",
+          rank: "normal",
+        }),
+  };
 }
 
 function toAliasesData(aliases: string | null): any {
@@ -54,21 +67,8 @@ function toAliasesData(aliases: string | null): any {
 
 function toItemData(changes: ItemChanges): any {
   const claims: any[] = [];
-  for (const { guid, property, value, datatype } of changes.properties) {
-    claims.push({
-      ...(guid && { id: prepareGuid(guid) }),
-      ...(isEmptyValue(value) && guid
-        ? { remove: ":" }
-        : {
-            mainsnak: {
-              snaktype: "value",
-              property,
-              datavalue: toDatavalue(value, datatype),
-            },
-            type: "statement",
-            rank: "normal",
-          }),
-    });
+  for (const propertyChangs of changes.properties) {
+    claims.push(toClaimData(propertyChangs));
   }
 
   return {
