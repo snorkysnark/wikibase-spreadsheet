@@ -13,13 +13,7 @@ import {
   Key as KeyIcon,
 } from "@mui/icons-material";
 import { MuiFileInput } from "mui-file-input";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import {
   DelimiterMenu,
   DelimiterState,
@@ -37,6 +31,8 @@ import {
 import { useCsvHeaders } from "./hooks";
 import { produce } from "immer";
 import MappingPicker from "./MappingPicker";
+
+// TODO: move all tha mapping logic out of the component
 
 export interface ImportField<AllowNull extends boolean = false> {
   isKey: boolean;
@@ -75,6 +71,13 @@ function loadMappingFields(
           hotMapping: uuidToField.get(fieldUuid) ?? null,
         });
       }
+    } else {
+      for (const field of hotFields)
+        map.set(field.name, {
+          isKey: false,
+          csvName: field.name,
+          hotMapping: field,
+        });
     }
     return map;
   }, [mapping, uuidToField]);
