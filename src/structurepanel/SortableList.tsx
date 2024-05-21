@@ -3,12 +3,10 @@ import { DndContext, closestCorners, UniqueIdentifier } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { SortableContext } from "@dnd-kit/sortable";
 
-export default function SortableList({
-  ids,
+export function SortableDndContext({
   onMove,
   children,
 }: {
-  ids: UniqueIdentifier[];
   onMove: (index1: number, index2: number) => void;
   children: ReactNode;
 }) {
@@ -25,7 +23,23 @@ export default function SortableList({
         }
       }}
     >
-      <SortableContext items={ids}>{children}</SortableContext>
+      {children}
     </DndContext>
+  );
+}
+
+export default function SortableList({
+  ids,
+  onMove,
+  children,
+}: {
+  ids: UniqueIdentifier[];
+  onMove: (index1: number, index2: number) => void;
+  children: ReactNode;
+}) {
+  return (
+    <SortableDndContext onMove={onMove}>
+      <SortableContext items={ids}>{children}</SortableContext>
+    </SortableDndContext>
   );
 }

@@ -22,9 +22,9 @@ import {
   TableStructure,
 } from "src/structure";
 import { useList } from "@react-hookz/web";
-import { useSortable } from "@dnd-kit/sortable";
+import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import SortableList from "src/structurepanel/SortableList";
+import { SortableDndContext } from "src/structurepanel/SortableList";
 import { produce } from "immer";
 import MappingPicker from "./MappingPicker";
 import { uuidMap } from "src/util";
@@ -182,39 +182,42 @@ export function ExportDialog({
           makeUpdated={makeUpdatedMapping}
         />
         <DelimiterMenu value={delimiterState} onChange={setDelimiterState} />
-        <table>
-          <thead>
-            <tr>
-              <th></th>
-              <th>Editor</th>
-              <th>CSV</th>
-            </tr>
-          </thead>
-          <tbody>
-            <SortableList
-              ids={fields.map((exportField) => exportField.field.uuid)}
-              onMove={(fromIndex, toIndex) => {
-                const element = fields[fromIndex];
-                alterFields.removeAt(fromIndex);
-                alterFields.insertAt(toIndex, element);
-              }}
-            >
-              {fields.map((exportField, i) => (
-                <FieldEditor
-                  key={exportField.field.uuid}
-                  fieldParams={exportField}
-                  setCsvName={(value) =>
-                    alterFields.set(
-                      produce((fields) => {
-                        fields[i].csvName = value;
-                      })
-                    )
-                  }
-                />
-              ))}
-            </SortableList>
-          </tbody>
-        </table>
+        <SortableDndContext
+          onMove={(fromIndex, toIndex) => {
+            const element = fields[fromIndex];
+            alterFields.removeAt(fromIndex);
+            alterFields.insertAt(toIndex, element);
+          }}
+        >
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Editor</th>
+                <th>CSV</th>
+              </tr>
+            </thead>
+            <tbody>
+              <SortableContext
+                items={fields.map((exportField) => exportField.field.uuid)}
+              >
+                {fields.map((exportField, i) => (
+                  <FieldEditor
+                    key={exportField.field.uuid}
+                    fieldParams={exportField}
+                    setCsvName={(value) =>
+                      alterFields.set(
+                        produce((fields) => {
+                          fields[i].csvName = value;
+                        })
+                      )
+                    }
+                  />
+                ))}
+              </SortableContext>
+            </tbody>
+          </table>
+        </SortableDndContext>
       </DialogContent>
       <DialogActions>
         <Button
