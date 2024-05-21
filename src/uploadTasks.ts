@@ -72,11 +72,13 @@ function toItemData(changes: ItemChanges): any {
   }
 
   return {
-    ...(changes.label && {
-      labels: { en: { language: "en", value: changes.label } },
+    ...(changes.label !== undefined && {
+      labels: { en: { language: "en", value: changes.label ?? "" } },
     }),
-    ...(changes.description && {
-      descriptions: { en: { language: "en", value: changes.description } },
+    ...(changes.description !== undefined && {
+      descriptions: {
+        en: { language: "en", value: changes.description ?? "" },
+      },
     }),
     ...(changes.aliases !== undefined && toAliasesData(changes.aliases)),
     ...(claims.length > 0 && { claims }),
@@ -111,10 +113,6 @@ export class CreationTask extends NamedTask {
     isInstanceProp: string,
     parentItem: number
   ) {
-    if (!changes.label) {
-      changes.label = makeUuid();
-    }
-
     super(`Creating item ${changes.label}`);
     this.changes = changes;
     this.isInstanceProp = isInstanceProp;

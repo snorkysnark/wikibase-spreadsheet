@@ -187,10 +187,6 @@ const TableEditor = forwardRef(function TableEditor(
       }),
     [tableStructure]
   );
-  const hasLabel = useMemo(
-    () => !!tableStructure.fields.find((field) => field.property === "label"),
-    [tableStructure]
-  );
 
   useEffect(() => {
     itemsForDeletion.current.clear();
@@ -270,7 +266,6 @@ const TableEditor = forwardRef(function TableEditor(
         hot.alter("insert_row_below");
 
         const lastRow = hot.countRows() - 1;
-        if (hasLabel) hot.setDataAtRowProp(lastRow, "label", makeUuid());
         hot.selectCell(lastRow, 0);
       }
     },
