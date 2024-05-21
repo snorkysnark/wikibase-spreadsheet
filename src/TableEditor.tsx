@@ -234,12 +234,9 @@ const TableEditor = forwardRef(function TableEditor(
           const column = hot.propToCol(prop) as number;
           const originalValue = hot.getCellMeta(row, column).originalValue;
 
-          hot.setCellMeta(
-            row,
-            column,
-            "originalValue",
-            originalValue ?? prevValue
-          );
+          if (originalValue === undefined) {
+            hot.setCellMeta(row, column, "originalValue", prevValue);
+          }
         }
       },
     });
