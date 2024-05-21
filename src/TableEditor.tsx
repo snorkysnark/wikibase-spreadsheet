@@ -197,9 +197,9 @@ const TableEditor = forwardRef(function TableEditor(
       data,
       dataSchema: {
         itemId: null,
-        label: undefined,
-        description: undefined,
-        aliases: undefined,
+        label: null,
+        description: null,
+        aliases: null,
         properties: Object.fromEntries(
           tableStructure.fields.map((field) => [
             field.property,
