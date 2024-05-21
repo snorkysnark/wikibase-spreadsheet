@@ -6,7 +6,7 @@ import {
 } from "csv-stringify/browser/esm";
 import { parse as parseCsv } from "csv-parse/browser/esm/sync";
 import { propertyToPath } from "src/localTable";
-import { ImportField, ImportParameters } from "./ImportDialog";
+import { ImportParameters } from "./ImportDialog";
 import { DefaultMap } from "src/util";
 
 function* iterRows(
@@ -56,12 +56,33 @@ function updateRowFromCsv(
   }
 }
 
+function castValue(value: string, datatype: string | undefined) {
+  if (value === "") return null;
+
+  switch (datatype) {
+    case "quantity":
+      return +value;
+    default:
+      return value;
+  }
+}
+
 export function applyCsv(
   hot: Handsontable,
   rawCsv: string,
   params: ImportParameters
 ) {
-  const csv: any[] = parseCsv(rawCsv, { columns: true });
+  const datatypeMap = new Map<string, string>();
+  for (const { csvName, hotMapping } of params.fields) {
+    if (hotMapping.datatype) datatypeMap.set(csvName, hotMapping.datatype);
+  }
+
+  const csv: any[] = parseCsv(rawCsv, {
+    columns: true,
+    cast: (value, ctx) =>
+      castValue(value, datatypeMap.get(ctx.column as string)),
+  });
+  console.log(csv);
 
   const mapping = params.fields.map(({ isKey, csvName, hotMapping }) => ({
     isKey,
