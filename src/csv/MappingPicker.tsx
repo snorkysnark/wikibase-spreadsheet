@@ -60,7 +60,7 @@ export default function MappingPicker({
       <Select
         sx={{ flex: "1" }}
         variant="outlined"
-        value={value ? value.uuid : null}
+        value={value ? value.uuid : ""}
         onChange={(event) => {
           const uuid = event.target.value;
           onChange(uuid ? csvMappings.byUuid[uuid] : null);
