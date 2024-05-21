@@ -40,10 +40,13 @@ function cellIsEdited(
   column: number
 ): boolean {
   const originalValue = meta.originalValue;
-  return (
-    originalValue !== undefined &&
-    originalValue !== hot.getDataAtCell(row, column)
-  );
+  let currentValue = hot.getDataAtCell(row, column);
+  if (currentValue === "") {
+    // In handsontable, empty string and null are identical
+    currentValue = null;
+  }
+
+  return originalValue !== undefined && originalValue !== currentValue;
 }
 
 function extendCellSettings(
