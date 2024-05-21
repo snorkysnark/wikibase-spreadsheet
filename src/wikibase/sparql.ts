@@ -12,7 +12,7 @@ export interface SparqlResponse {
 }
 
 export interface SparqlBinding {
-  [name: string]: { type: string; value: string };
+  [name: string]: { type: string; value: string; datatype?: string };
 }
 
 export async function sparqlQuery(query: string): Promise<SparqlResponse> {

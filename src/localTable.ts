@@ -70,6 +70,15 @@ export function itemIdFromUri(uri: string): number {
   throw new Error("Invalid uri: " + uri);
 }
 
+function castValue(value: string, datatype: string | undefined): any {
+  switch (datatype) {
+    case "http://www.w3.org/2001/XMLSchema#decimal":
+      return +value;
+    default:
+      return value;
+  }
+}
+
 export async function loadTableFromQuery(
   desc: SparqlQueryDesc
 ): Promise<LocalRow[]> {
@@ -98,7 +107,10 @@ export async function loadTableFromQuery(
               propertyObject
                 ? {
                     guid: lastUriPart(binding["id" + propertyId].value),
-                    value: propertyObject.value,
+                    value: castValue(
+                      propertyObject.value,
+                      propertyObject.datatype
+                    ),
                   }
                 : { guid: null, value: null },
             ];
