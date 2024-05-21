@@ -14,14 +14,14 @@ export abstract class NamedTask {
 export interface PropertyChanges {
   guid?: string | null;
   property: string;
-  value: string;
+  value: string | null;
   datatype?: string;
 }
 
 export interface ItemChanges {
-  label?: string;
-  description?: string;
-  aliases?: string;
+  label?: string | null;
+  description?: string | null;
+  aliases?: string | null;
   properties: PropertyChanges[];
 }
 
@@ -41,7 +41,15 @@ function toDatavalue(value: any, datatype: string | undefined): any {
 }
 
 function isEmptyValue(value: any): boolean {
-  return value === "" || value === null || value == undefined;
+  return value === "" || value === null || value === undefined;
+}
+
+function toAliasesData(aliases: string | null): any {
+  const aliasList = aliases
+    ? aliases.split(", ").map((alias) => ({ language: "en", value: alias }))
+    : [];
+
+  return { aliases: { en: aliasList } };
 }
 
 function toItemData(changes: ItemChanges): any {
@@ -70,13 +78,7 @@ function toItemData(changes: ItemChanges): any {
     ...(changes.description && {
       descriptions: { en: { language: "en", value: changes.description } },
     }),
-    ...(changes.aliases && {
-      aliases: {
-        en: changes.aliases
-          .split(", ")
-          .map((alias) => ({ language: "en", value: alias })),
-      },
-    }),
+    ...(changes.aliases !== undefined && toAliasesData(changes.aliases)),
     ...(claims.length > 0 && { claims }),
   };
 }
